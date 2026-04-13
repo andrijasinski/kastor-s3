@@ -10,6 +10,7 @@ export class FakeStorage implements Storage {
 	private readonly options: FakeStorageOptions;
 	private readonly objectsByBucket: Record<string, S3Object[]>;
 	private readonly uploadedKeys: Map<string, string[]> = new Map();
+	private readonly deletedKeys: Map<string, string[]> = new Map();
 
 	public constructor(
 		buckets: Bucket[],
@@ -60,6 +61,27 @@ export class FakeStorage implements Storage {
 
 	public getUploadedKeys(bucket: string): string[] {
 		return this.uploadedKeys.get(bucket) ?? [];
+	}
+
+	public async deleteObject(bucket: string, key: string): Promise<void> {
+		if (this.options.fail === true) {
+			throw new Error('FakeStorage: forced failure');
+		}
+		const keys = this.deletedKeys.get(bucket) ?? [];
+		keys.push(key);
+		this.deletedKeys.set(bucket, keys);
+	}
+
+	public getDeletedKeys(bucket: string): string[] {
+		return this.deletedKeys.get(bucket) ?? [];
+	}
+
+	public async deleteObjects(bucket: string, keys: string[]): Promise<void> {
+		if (this.options.fail === true) {
+			throw new Error('FakeStorage: forced failure');
+		}
+		const existing = this.deletedKeys.get(bucket) ?? [];
+		this.deletedKeys.set(bucket, [...existing, ...keys]);
 	}
 
 	public async getObjectStream(_bucket: string, _key: string): Promise<ObjectStream> {

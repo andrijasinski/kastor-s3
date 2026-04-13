@@ -149,6 +149,43 @@ export function createApp(storage: Storage): Hono {
 		}
 	});
 
+	app.delete('/api/buckets/:bucket/object', async (c) => {
+		const { bucket } = c.req.param();
+		const key = c.req.query('key');
+		if (key === undefined || key === '') {
+			return c.json({ error: 'Missing key parameter' }, 400);
+		}
+		try {
+			await storage.deleteObject(bucket, key);
+			return c.json({ ok: true });
+		} catch (err) {
+			process.stderr.write(
+				`DELETE /api/buckets/${bucket}/object error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
+			);
+			return c.json({ error: 'Failed to delete object' }, 500);
+		}
+	});
+
+	app.delete('/api/buckets/:bucket/folder', async (c) => {
+		const { bucket } = c.req.param();
+		const prefix = c.req.query('prefix');
+		if (prefix === undefined || prefix === '') {
+			return c.json({ error: 'Missing prefix parameter' }, 400);
+		}
+		try {
+			const keys = await storage.listAllObjects(bucket, prefix);
+			if (keys.length > 0) {
+				await storage.deleteObjects(bucket, keys);
+			}
+			return c.json({ ok: true });
+		} catch (err) {
+			process.stderr.write(
+				`DELETE /api/buckets/${bucket}/folder error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
+			);
+			return c.json({ error: 'Failed to delete folder' }, 500);
+		}
+	});
+
 	app.get('/api/buckets/:bucket/download-folder', async (c) => {
 		const { bucket } = c.req.param();
 		const prefix = c.req.query('prefix') ?? '';

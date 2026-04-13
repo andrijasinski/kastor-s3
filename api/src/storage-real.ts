@@ -4,6 +4,8 @@ import {
 	ListObjectsV2Command,
 	GetObjectCommand,
 	PutObjectCommand,
+	DeleteObjectCommand,
+	DeleteObjectsCommand,
 } from '@aws-sdk/client-s3';
 import type { Bucket, S3Object } from '@shared/types';
 import type { ObjectStream, Storage } from './storage';
@@ -87,6 +89,23 @@ export class S3Storage implements Storage {
 			...(result.ContentType !== undefined && { contentType: result.ContentType }),
 			...(result.ContentLength !== undefined && { contentLength: result.ContentLength }),
 		};
+	}
+
+	public async deleteObject(bucket: string, key: string): Promise<void> {
+		await this.client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+	}
+
+	public async deleteObjects(bucket: string, keys: string[]): Promise<void> {
+		const chunkSize = 1000;
+		for (let i = 0; i < keys.length; i += chunkSize) {
+			const chunk = keys.slice(i, i + chunkSize);
+			await this.client.send(
+				new DeleteObjectsCommand({
+					Bucket: bucket,
+					Delete: { Objects: chunk.map((key) => ({ Key: key })), Quiet: true },
+				}),
+			);
+		}
 	}
 
 	public async putObject(

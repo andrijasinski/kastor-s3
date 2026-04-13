@@ -7,12 +7,13 @@ import {
 	Button,
 	Container,
 	Group,
+	Modal,
 	Progress,
 	Stack,
 	Table,
 	Text,
 } from '@mantine/core';
-import { IconDownload, IconFolderUp, IconUpload } from '@tabler/icons-react';
+import { IconDownload, IconFolderUp, IconTrash, IconUpload } from '@tabler/icons-react';
 import type { S3Object } from '@shared/types';
 import { fetchObjects } from '../api/client';
 
@@ -78,6 +79,10 @@ export const ObjectBrowserPage = () => {
 	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 	const [uploadError, setUploadError] = useState<string | null>(null);
 	const [refreshKey, setRefreshKey] = useState(0);
+	const [pendingDelete, setPendingDelete] = useState<{ key: string; isFolder: boolean } | null>(
+		null,
+	);
+	const [deleting, setDeleting] = useState(false);
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const folderInputRef = useRef<HTMLInputElement>(null);
@@ -139,6 +144,28 @@ export const ObjectBrowserPage = () => {
 		}
 	};
 
+	const confirmDelete = async (): Promise<void> => {
+		if (pendingDelete === null) {
+			return;
+		}
+		setDeleting(true);
+		try {
+			const url = pendingDelete.isFolder
+				? `/api/buckets/${encodeURIComponent(bucket)}/folder?prefix=${encodeURIComponent(pendingDelete.key)}`
+				: `/api/buckets/${encodeURIComponent(bucket)}/object?key=${encodeURIComponent(pendingDelete.key)}`;
+			const res = await fetch(url, { method: 'DELETE' });
+			if (!res.ok) {
+				throw new Error(`Delete failed: ${res.status}`);
+			}
+			setObjects((objs) => objs.filter((obj) => obj.key !== pendingDelete.key));
+			setPendingDelete(null);
+		} catch {
+			// silently ignore — no error state to avoid disrupting the list
+		} finally {
+			setDeleting(false);
+		}
+	};
+
 	const uploadFiles = async (files: FileList): Promise<void> => {
 		const fileArray = Array.from(files);
 		setUploadError(null);
@@ -195,6 +222,46 @@ export const ObjectBrowserPage = () => {
 
 	return (
 		<Container size="lg" py="xl">
+			<Modal
+				opened={pendingDelete !== null}
+				onClose={() => {
+					if (!deleting) {
+						setPendingDelete(null);
+					}
+				}}
+				title={pendingDelete?.isFolder ? 'Delete folder' : 'Delete object'}
+				size="sm"
+			>
+				<Text size="sm" mb="lg">
+					{pendingDelete?.isFolder
+						? 'Are you sure you want to delete all objects in '
+						: 'Are you sure you want to delete '}
+					<Text span fw={600} style={{ wordBreak: 'break-all' }}>
+						{pendingDelete?.key}
+					</Text>
+					? This cannot be undone.
+				</Text>
+				<Group justify="flex-end">
+					<Button
+						variant="default"
+						onClick={() => {
+							setPendingDelete(null);
+						}}
+						disabled={deleting}
+					>
+						Cancel
+					</Button>
+					<Button
+						color="red"
+						onClick={() => {
+							void confirmDelete();
+						}}
+						loading={deleting}
+					>
+						Delete
+					</Button>
+				</Group>
+			</Modal>
 			<Breadcrumbs mb="lg">
 				{crumbs.map((crumb, i) =>
 					i === crumbs.length - 1 ? (
@@ -322,32 +389,66 @@ export const ObjectBrowserPage = () => {
 									</Text>
 								</Table.Td>
 								<Table.Td>
-									{obj.isPrefix ? (
-										<ActionIcon
-											onClick={() => {
-												void downloadFolder(obj.key);
-											}}
-											loading={downloadingFolder === obj.key}
-											variant="subtle"
-											color="gray"
-											size="sm"
-											aria-label={`Download ${obj.key}`}
-										>
-											<IconDownload size={14} />
-										</ActionIcon>
-									) : (
-										<ActionIcon
-											component="a"
-											href={downloadUrl(bucket, obj.key)}
-											download={obj.key.split('/').pop()}
-											variant="subtle"
-											color="gray"
-											size="sm"
-											aria-label={`Download ${obj.key}`}
-										>
-											<IconDownload size={14} />
-										</ActionIcon>
-									)}
+									<Group gap="xs" justify="flex-end" wrap="nowrap">
+										{obj.isPrefix ? (
+											<>
+												<ActionIcon
+													onClick={() => {
+														void downloadFolder(obj.key);
+													}}
+													loading={downloadingFolder === obj.key}
+													variant="subtle"
+													color="gray"
+													size="sm"
+													aria-label={`Download ${obj.key}`}
+												>
+													<IconDownload size={14} />
+												</ActionIcon>
+												<ActionIcon
+													onClick={() => {
+														setPendingDelete({
+															key: obj.key,
+															isFolder: true,
+														});
+													}}
+													variant="subtle"
+													color="red"
+													size="sm"
+													aria-label={`Delete ${obj.key}`}
+												>
+													<IconTrash size={14} />
+												</ActionIcon>
+											</>
+										) : (
+											<>
+												<ActionIcon
+													component="a"
+													href={downloadUrl(bucket, obj.key)}
+													download={obj.key.split('/').pop()}
+													variant="subtle"
+													color="gray"
+													size="sm"
+													aria-label={`Download ${obj.key}`}
+												>
+													<IconDownload size={14} />
+												</ActionIcon>
+												<ActionIcon
+													onClick={() => {
+														setPendingDelete({
+															key: obj.key,
+															isFolder: false,
+														});
+													}}
+													variant="subtle"
+													color="red"
+													size="sm"
+													aria-label={`Delete ${obj.key}`}
+												>
+													<IconTrash size={14} />
+												</ActionIcon>
+											</>
+										)}
+									</Group>
 								</Table.Td>
 							</Table.Tr>
 						))}

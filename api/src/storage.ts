@@ -12,4 +12,6 @@ export interface Storage {
 	listAllObjects(bucket: string, prefix: string): Promise<string[]>;
 	getObjectStream(bucket: string, key: string): Promise<ObjectStream>;
 	putObject(bucket: string, key: string, body: Uint8Array, contentType?: string): Promise<void>;
+	deleteObject(bucket: string, key: string): Promise<void>;
+	deleteObjects(bucket: string, keys: string[]): Promise<void>;
 }
