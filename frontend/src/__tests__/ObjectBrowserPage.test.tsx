@@ -59,6 +59,21 @@ describe('ObjectBrowserPage', () => {
     });
   });
 
+  it('shows download link for object files', async () => {
+    renderPage('/buckets/my-bucket');
+    await waitFor(() => {
+      const link = screen.getByRole('link', { name: /download readme.txt/i });
+      expect(link).toHaveAttribute('href', '/api/buckets/my-bucket/download?key=readme.txt');
+    });
+  });
+
+  it('does not show download link for prefixes', async () => {
+    renderPage('/buckets/my-bucket');
+    await waitFor(() => {
+      expect(screen.queryByRole('link', { name: /download docs\//i })).not.toBeInTheDocument();
+    });
+  });
+
   it('shows error on fetch failure', async () => {
     server.use(
       http.get('/api/buckets/:bucket/objects', () => new HttpResponse(null, { status: 500 })),

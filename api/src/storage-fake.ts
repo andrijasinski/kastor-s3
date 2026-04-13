@@ -1,5 +1,5 @@
 import type { Bucket, S3Object } from '@shared/types';
-import type { Storage } from './storage';
+import type { ObjectStream, Storage } from './storage';
 
 interface FakeStorageOptions {
   fail?: boolean;
@@ -32,5 +32,19 @@ export class FakeStorage implements Storage {
       throw new Error('FakeStorage: forced failure');
     }
     return this.objectsByBucket[bucket] ?? [];
+  }
+
+  public async getObjectStream(_bucket: string, _key: string): Promise<ObjectStream> {
+    if (this.options.fail === true) {
+      throw new Error('FakeStorage: forced failure');
+    }
+    const content = new TextEncoder().encode('fake file content');
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(content);
+        controller.close();
+      },
+    });
+    return { body, contentType: 'application/octet-stream', contentLength: content.byteLength };
   }
 }

@@ -1,6 +1,6 @@
-import { S3Client, ListBucketsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, ListBucketsCommand, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import type { Bucket, S3Object } from '@shared/types';
-import type { Storage } from './storage';
+import type { ObjectStream, Storage } from './storage';
 
 export class S3Storage implements Storage {
   private readonly client: S3Client;
@@ -46,5 +46,17 @@ export class S3Storage implements Storage {
     }, []);
 
     return [...prefixes, ...objects];
+  }
+
+  public async getObjectStream(bucket: string, key: string): Promise<ObjectStream> {
+    const result = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    if (result.Body === undefined) {
+      throw new Error('Empty response body from S3');
+    }
+    return {
+      body: result.Body.transformToWebStream(),
+      ...(result.ContentType !== undefined && { contentType: result.ContentType }),
+      ...(result.ContentLength !== undefined && { contentLength: result.ContentLength }),
+    };
   }
 }

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import {
+  ActionIcon,
   Anchor,
   Breadcrumbs,
   Container,
   Table,
   Text,
 } from '@mantine/core';
+import { IconDownload } from '@tabler/icons-react';
 import type { S3Object } from '@shared/types';
 import { fetchObjects } from '../api/client';
 
@@ -40,6 +42,9 @@ const formatDate = (isoString: string): string => {
   }
   return new Date(isoString).toLocaleString();
 };
+
+const downloadUrl = (bucket: string, key: string): string =>
+  `/api/buckets/${encodeURIComponent(bucket)}/download?key=${encodeURIComponent(key)}`;
 
 export const ObjectBrowserPage = () => {
   const { bucket } = useParams<{ bucket: string }>();
@@ -114,6 +119,7 @@ export const ObjectBrowserPage = () => {
               <Table.Th>Name</Table.Th>
               <Table.Th>Size</Table.Th>
               <Table.Th>Last modified</Table.Th>
+              <Table.Th />
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -137,6 +143,21 @@ export const ObjectBrowserPage = () => {
                 </Table.Td>
                 <Table.Td>
                   <Text span c="dimmed">{obj.isPrefix ? '—' : formatDate(obj.lastModified)}</Text>
+                </Table.Td>
+                <Table.Td>
+                  {!obj.isPrefix && (
+                    <ActionIcon
+                      component="a"
+                      href={downloadUrl(bucket, obj.key)}
+                      download={obj.key.split('/').pop()}
+                      variant="subtle"
+                      color="gray"
+                      size="sm"
+                      aria-label={`Download ${obj.key}`}
+                    >
+                      <IconDownload size={14} />
+                    </ActionIcon>
+                  )}
                 </Table.Td>
               </Table.Tr>
             ))}
