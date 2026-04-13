@@ -1,0 +1,30 @@
+{
+  "name": "frontend",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19",
+    "react-router-dom": "^7",
+    "@mantine/core": "^7",
+    "@mantine/hooks": "^7"
+  },
+  "devDependencies": {
+    "vite": "^6",
+    "@vitejs/plugin-react": "^4",
+    "vitest": "^3",
+    "jsdom": "^25",
+    "@testing-library/react": "^16",
+    "@testing-library/user-event": "^14",
+    "@testing-library/jest-dom": "^6",
+    "msw": "^2",
+    "typescript": "^5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
+  }
+}
