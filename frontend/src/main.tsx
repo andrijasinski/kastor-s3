@@ -7,15 +7,15 @@ import { App } from './App';
 
 const rootEl = document.getElementById('root');
 if (rootEl === null) {
-  throw new Error('Root element not found');
+	throw new Error('Root element not found');
 }
 
 createRoot(rootEl).render(
-  <StrictMode>
-    <BrowserRouter>
-      <MantineProvider>
-        <App />
-      </MantineProvider>
-    </BrowserRouter>
-  </StrictMode>,
+	<StrictMode>
+		<BrowserRouter>
+			<MantineProvider>
+				<App />
+			</MantineProvider>
+		</BrowserRouter>
+	</StrictMode>,
 );

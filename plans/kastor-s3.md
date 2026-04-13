@@ -7,20 +7,20 @@
 Durable decisions that apply across all phases:
 
 - **API routes:**
-  - `GET /api/buckets`
-  - `GET /api/buckets/:bucket/objects?prefix=`
-  - `POST /api/buckets/:bucket/objects?prefix=`
-  - `DELETE /api/buckets/:bucket/objects?key=`
-  - `GET /api/buckets/:bucket/download?key=`
-  - `GET /api/buckets/:bucket/download-folder?prefix=`
-  - `GET /api/buckets/:bucket/presigned?key=`
+    - `GET /api/buckets`
+    - `GET /api/buckets/:bucket/objects?prefix=`
+    - `POST /api/buckets/:bucket/objects?prefix=`
+    - `DELETE /api/buckets/:bucket/objects?key=`
+    - `GET /api/buckets/:bucket/download?key=`
+    - `GET /api/buckets/:bucket/download-folder?prefix=`
+    - `GET /api/buckets/:bucket/presigned?key=`
 - **Frontend routes:**
-  - `/` — bucket list
-  - `/buckets/:bucket?prefix=` — object browser (root and nested prefixes)
+    - `/` — bucket list
+    - `/buckets/:bucket?prefix=` — object browser (root and nested prefixes)
 - **Key models** (defined in `shared/types.ts`, shared across API and frontend):
-  - `Bucket { name: string, creationDate: string }`
-  - `S3Object { key: string, size: number, lastModified: string, isPrefix: boolean }`
-  - `PresignedURL { url: string }`
+    - `Bucket { name: string, creationDate: string }`
+    - `S3Object { key: string, size: number, lastModified: string, isPrefix: boolean }`
+    - `PresignedURL { url: string }`
 - **Stack:** TypeScript throughout — Bun + Hono (API), Vite + React + Mantine (frontend)
 - **S3 client:** `@aws-sdk/client-s3` (AWS SDK v3)
 - **Storage interface:** S3 client sits behind a `Storage` TypeScript interface; real impl in prod, fake in tests

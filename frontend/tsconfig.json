@@ -1,12 +1,12 @@
 {
-  "extends": "../tsconfig.base.json",
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vitest/globals", "@testing-library/jest-dom"],
-    "paths": {
-      "@shared/*": ["../shared/*"]
-    }
-  },
-  "include": ["src/**/*"]
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"types": ["vitest/globals", "@testing-library/jest-dom"],
+		"paths": {
+			"@shared/*": ["../shared/*"]
+		}
+	},
+	"include": ["src/**/*"]
 }

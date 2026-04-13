@@ -1,18 +1,18 @@
 {
-  "name": "api",
-  "private": true,
-  "scripts": {
-    "dev": "bun run --watch src/index.ts",
-    "start": "bun run src/index.ts",
-    "test": "bun test"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3",
-    "@smithy/fetch-http-handler": "^5",
-    "fflate": "^0.8.2",
-    "hono": "^4"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  }
+	"name": "api",
+	"private": true,
+	"scripts": {
+		"dev": "bun run --watch src/index.ts",
+		"start": "bun run src/index.ts",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3",
+		"@smithy/fetch-http-handler": "^5",
+		"fflate": "^0.8.2",
+		"hono": "^4"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	}
 }

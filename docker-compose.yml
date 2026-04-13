@@ -1,18 +1,18 @@
 services:
-  api:
-    build:
-      context: .
-      dockerfile: api/Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "8080:8080"
+    api:
+        build:
+            context: .
+            dockerfile: api/Dockerfile
+        env_file:
+            - .env
+        ports:
+            - '8080:8080'
 
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-    ports:
-      - "7778:80"
-    depends_on:
-      - api
+    frontend:
+        build:
+            context: .
+            dockerfile: frontend/Dockerfile
+        ports:
+            - '7778:80'
+        depends_on:
+            - api

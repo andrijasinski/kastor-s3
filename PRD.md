@@ -22,14 +22,14 @@ Existing S3 GUI tools (e.g. s3manager) have good setup simplicity but fall short
 
 ## 3. Goals
 
-| Goal | Description |
-|---|---|
-| Fast setup | Single `docker compose up` to run locally |
-| Object browsing | Navigate S3 buckets and prefixes like a file system |
-| File operations | Upload, download, delete objects |
-| Folder download | Download all objects under a prefix as a ZIP |
-| Image thumbnails | Preview images inline without downloading them |
-| Modern UI | Clean, contemporary look with minimal visual noise |
+| Goal             | Description                                         |
+| ---------------- | --------------------------------------------------- |
+| Fast setup       | Single `docker compose up` to run locally           |
+| Object browsing  | Navigate S3 buckets and prefixes like a file system |
+| File operations  | Upload, download, delete objects                    |
+| Folder download  | Download all objects under a prefix as a ZIP        |
+| Image thumbnails | Preview images inline without downloading them      |
+| Modern UI        | Clean, contemporary look with minimal visual noise  |
 
 ## 4. Non-Goals
 
@@ -93,6 +93,7 @@ The following are explicitly out of scope:
 The UI is responsive. On mobile viewports the feature set is intentionally reduced to a read/download-only experience:
 
 **Available on mobile:**
+
 - Browse buckets and navigate object prefixes
 - Image thumbnail previews
 - Select individual files or folders for download
@@ -100,6 +101,7 @@ The UI is responsive. On mobile viewports the feature set is intentionally reduc
 - Folder download as ZIP
 
 **Hidden on mobile (desktop only):**
+
 - File upload
 - Object deletion
 
@@ -118,14 +120,14 @@ The UI is responsive. On mobile viewports the feature set is intentionally reduc
 
 All configuration via environment variables:
 
-| Variable | Description | Required |
-|---|---|---|
-| `S3_ENDPOINT` | S3-compatible endpoint URL | Yes |
-| `S3_ACCESS_KEY_ID` | Access key ID | Yes |
-| `S3_SECRET_ACCESS_KEY` | Secret access key | Yes |
-| `S3_REGION` | Storage region | Yes |
-| `S3_SSL_ENABLED` | Enable SSL (default: `true`) | No |
-| `S3_FORCE_DOWNLOAD` | Force file download vs inline (default: `true`) | No |
+| Variable               | Description                                     | Required |
+| ---------------------- | ----------------------------------------------- | -------- |
+| `S3_ENDPOINT`          | S3-compatible endpoint URL                      | Yes      |
+| `S3_ACCESS_KEY_ID`     | Access key ID                                   | Yes      |
+| `S3_SECRET_ACCESS_KEY` | Secret access key                               | Yes      |
+| `S3_REGION`            | Storage region                                  | Yes      |
+| `S3_SSL_ENABLED`       | Enable SSL (default: `true`)                    | No       |
+| `S3_FORCE_DOWNLOAD`    | Force file download vs inline (default: `true`) | No       |
 
 ---
 
@@ -133,15 +135,15 @@ All configuration via environment variables:
 
 The Go backend exposes a JSON REST API consumed by the frontend.
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/buckets` | List all buckets |
-| `GET` | `/api/buckets/{bucket}/objects?prefix=` | List objects and prefixes at path |
-| `POST` | `/api/buckets/{bucket}/objects?prefix=` | Upload a file |
-| `DELETE` | `/api/buckets/{bucket}/objects?key=` | Delete an object |
-| `GET` | `/api/buckets/{bucket}/download?key=` | Download a single object |
-| `GET` | `/api/buckets/{bucket}/download-folder?prefix=` | Download prefix as ZIP |
-| `GET` | `/api/buckets/{bucket}/presigned?key=` | Get presigned URL for a thumbnail |
+| Method   | Path                                            | Description                       |
+| -------- | ----------------------------------------------- | --------------------------------- |
+| `GET`    | `/api/buckets`                                  | List all buckets                  |
+| `GET`    | `/api/buckets/{bucket}/objects?prefix=`         | List objects and prefixes at path |
+| `POST`   | `/api/buckets/{bucket}/objects?prefix=`         | Upload a file                     |
+| `DELETE` | `/api/buckets/{bucket}/objects?key=`            | Delete an object                  |
+| `GET`    | `/api/buckets/{bucket}/download?key=`           | Download a single object          |
+| `GET`    | `/api/buckets/{bucket}/download-folder?prefix=` | Download prefix as ZIP            |
+| `GET`    | `/api/buckets/{bucket}/presigned?key=`          | Get presigned URL for a thumbnail |
 
 ---
 

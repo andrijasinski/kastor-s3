@@ -1,83 +1,107 @@
-import { S3Client, ListBucketsCommand, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+	S3Client,
+	ListBucketsCommand,
+	ListObjectsV2Command,
+	GetObjectCommand,
+	PutObjectCommand,
+} from '@aws-sdk/client-s3';
 import type { Bucket, S3Object } from '@shared/types';
 import type { ObjectStream, Storage } from './storage';
 
 export class S3Storage implements Storage {
-  private readonly client: S3Client;
+	private readonly client: S3Client;
 
-  public constructor(client: S3Client) {
-    this.client = client;
-  }
+	public constructor(client: S3Client) {
+		this.client = client;
+	}
 
-  public async listBuckets(): Promise<Bucket[]> {
-    const result = await this.client.send(new ListBucketsCommand({}));
-    return (result.Buckets ?? []).map((b) => ({
-      name: b.Name ?? '',
-      creationDate: b.CreationDate?.toISOString() ?? '',
-    }));
-  }
+	public async listBuckets(): Promise<Bucket[]> {
+		const result = await this.client.send(new ListBucketsCommand({}));
+		return (result.Buckets ?? []).map((b) => ({
+			name: b.Name ?? '',
+			creationDate: b.CreationDate?.toISOString() ?? '',
+		}));
+	}
 
-  public async listObjects(bucket: string, prefix: string): Promise<S3Object[]> {
-    const result = await this.client.send(
-      new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: prefix || undefined,
-        Delimiter: '/',
-      }),
-    );
+	public async listObjects(bucket: string, prefix: string): Promise<S3Object[]> {
+		const result = await this.client.send(
+			new ListObjectsV2Command({
+				Bucket: bucket,
+				Prefix: prefix || undefined,
+				Delimiter: '/',
+			}),
+		);
 
-    const prefixes: S3Object[] = (result.CommonPrefixes ?? []).map((p) => ({
-      key: p.Prefix ?? '',
-      size: 0,
-      lastModified: '',
-      isPrefix: true,
-    }));
+		const prefixes: S3Object[] = (result.CommonPrefixes ?? []).map((p) => ({
+			key: p.Prefix ?? '',
+			size: 0,
+			lastModified: '',
+			isPrefix: true,
+		}));
 
-    const objects = (result.Contents ?? []).reduce<S3Object[]>((acc, obj) => {
-      if (obj.Key !== prefix) {
-        acc.push({
-          key: obj.Key ?? '',
-          size: obj.Size ?? 0,
-          lastModified: obj.LastModified?.toISOString() ?? '',
-          isPrefix: false,
-        });
-      }
-      return acc;
-    }, []);
+		const objects = (result.Contents ?? []).reduce<S3Object[]>((acc, obj) => {
+			if (obj.Key !== prefix) {
+				acc.push({
+					key: obj.Key ?? '',
+					size: obj.Size ?? 0,
+					lastModified: obj.LastModified?.toISOString() ?? '',
+					isPrefix: false,
+				});
+			}
+			return acc;
+		}, []);
 
-    return [...prefixes, ...objects];
-  }
+		return [...prefixes, ...objects];
+	}
 
-  public async listAllObjects(bucket: string, prefix: string): Promise<string[]> {
-    const keys: string[] = [];
-    let continuationToken: string | undefined;
-    do {
-      const result = await this.client.send(
-        new ListObjectsV2Command({
-          Bucket: bucket,
-          Prefix: prefix || undefined,
-          ...(continuationToken !== undefined && { ContinuationToken: continuationToken }),
-        }),
-      );
-      for (const obj of result.Contents ?? []) {
-        if (obj.Key !== undefined && !obj.Key.endsWith('/')) {
-          keys.push(obj.Key);
-        }
-      }
-      continuationToken = result.NextContinuationToken;
-    } while (continuationToken !== undefined);
-    return keys;
-  }
+	public async listAllObjects(bucket: string, prefix: string): Promise<string[]> {
+		const keys: string[] = [];
+		let continuationToken: string | undefined;
+		do {
+			const result = await this.client.send(
+				new ListObjectsV2Command({
+					Bucket: bucket,
+					Prefix: prefix || undefined,
+					...(continuationToken !== undefined && {
+						ContinuationToken: continuationToken,
+					}),
+				}),
+			);
+			for (const obj of result.Contents ?? []) {
+				if (obj.Key !== undefined && !obj.Key.endsWith('/')) {
+					keys.push(obj.Key);
+				}
+			}
+			continuationToken = result.NextContinuationToken;
+		} while (continuationToken !== undefined);
+		return keys;
+	}
 
-  public async getObjectStream(bucket: string, key: string): Promise<ObjectStream> {
-    const result = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-    if (result.Body === undefined) {
-      throw new Error('Empty response body from S3');
-    }
-    return {
-      body: result.Body.transformToWebStream(),
-      ...(result.ContentType !== undefined && { contentType: result.ContentType }),
-      ...(result.ContentLength !== undefined && { contentLength: result.ContentLength }),
-    };
-  }
+	public async getObjectStream(bucket: string, key: string): Promise<ObjectStream> {
+		const result = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+		if (result.Body === undefined) {
+			throw new Error('Empty response body from S3');
+		}
+		return {
+			body: result.Body.transformToWebStream(),
+			...(result.ContentType !== undefined && { contentType: result.ContentType }),
+			...(result.ContentLength !== undefined && { contentLength: result.ContentLength }),
+		};
+	}
+
+	public async putObject(
+		bucket: string,
+		key: string,
+		body: Uint8Array,
+		contentType?: string,
+	): Promise<void> {
+		await this.client.send(
+			new PutObjectCommand({
+				Bucket: bucket,
+				Key: key,
+				Body: body,
+				...(contentType !== undefined && { ContentType: contentType }),
+			}),
+		);
+	}
 }
