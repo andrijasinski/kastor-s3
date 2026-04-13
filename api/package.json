@@ -9,7 +9,8 @@
   "dependencies": {
     "hono": "^4",
     "@aws-sdk/client-s3": "^3",
-    "@aws-sdk/s3-request-presigner": "^3"
+    "@aws-sdk/s3-request-presigner": "^3",
+    "@smithy/fetch-http-handler": "^5"
   },
   "devDependencies": {
     "@types/bun": "latest"

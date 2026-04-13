@@ -55,6 +55,12 @@ export default tseslint.config(
           selector: 'enumMember',
           format: ['UPPER_CASE'],
         },
+        // Object literal properties may be PascalCase (e.g. AWS SDK input params like Bucket, Prefix)
+        {
+          selector: 'objectLiteralProperty',
+          format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
+          leadingUnderscore: 'allow',
+        },
       ],
       '@typescript-eslint/no-shadow': 'error',
       '@typescript-eslint/unbound-method': 'error',
