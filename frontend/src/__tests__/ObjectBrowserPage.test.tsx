@@ -67,7 +67,14 @@ describe('ObjectBrowserPage', () => {
     });
   });
 
-  it('does not show download link for prefixes', async () => {
+  it('shows download button for prefix folders', async () => {
+    renderPage('/buckets/my-bucket');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /download docs\//i })).toBeInTheDocument();
+    });
+  });
+
+  it('does not show a link for prefix folder downloads', async () => {
     renderPage('/buckets/my-bucket');
     await waitFor(() => {
       expect(screen.queryByRole('link', { name: /download docs\//i })).not.toBeInTheDocument();

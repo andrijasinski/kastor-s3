@@ -12,6 +12,15 @@ import { IconDownload } from '@tabler/icons-react';
 import type { S3Object } from '@shared/types';
 import { fetchObjects } from '../api/client';
 
+const triggerBlobDownload = (blob: Blob, filename: string): void => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 const buildBreadcrumbs = (bucket: string, prefix: string) => {
   const parts = prefix.split('/').filter((p) => p.length > 0);
   return [
@@ -54,6 +63,7 @@ export const ObjectBrowserPage = () => {
   const [objects, setObjects] = useState<S3Object[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingFolder, setDownloadingFolder] = useState<string | null>(null);
 
   useEffect(() => {
     if (bucket === undefined) {
@@ -86,6 +96,24 @@ export const ObjectBrowserPage = () => {
 
   const navigateTo = (newPrefix: string) => {
     setSearchParams(newPrefix !== '' ? { prefix: newPrefix } : {});
+  };
+
+  const downloadFolder = async (folderPrefix: string): Promise<void> => {
+    const folderName = folderPrefix.split('/').filter(Boolean).pop() ?? bucket;
+    setDownloadingFolder(folderPrefix);
+    try {
+      const url = `/api/buckets/${encodeURIComponent(bucket)}/download-folder?prefix=${encodeURIComponent(folderPrefix)}`;
+      const res = await fetch(url);
+      if (!res.ok || res.body === null) {
+        throw new Error(`Download failed: ${res.status}`);
+      }
+      const blob = await res.blob();
+      triggerBlobDownload(blob, `${folderName}.zip`);
+    } catch {
+      // silently ignore — no error state to avoid disrupting the list
+    } finally {
+      setDownloadingFolder(null);
+    }
   };
 
   return (
@@ -145,7 +173,18 @@ export const ObjectBrowserPage = () => {
                   <Text span c="dimmed">{obj.isPrefix ? '—' : formatDate(obj.lastModified)}</Text>
                 </Table.Td>
                 <Table.Td>
-                  {!obj.isPrefix && (
+                  {obj.isPrefix ? (
+                    <ActionIcon
+                      onClick={() => { void downloadFolder(obj.key); }}
+                      loading={downloadingFolder === obj.key}
+                      variant="subtle"
+                      color="gray"
+                      size="sm"
+                      aria-label={`Download ${obj.key}`}
+                    >
+                      <IconDownload size={14} />
+                    </ActionIcon>
+                  ) : (
                     <ActionIcon
                       component="a"
                       href={downloadUrl(bucket, obj.key)}

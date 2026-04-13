@@ -48,6 +48,27 @@ export class S3Storage implements Storage {
     return [...prefixes, ...objects];
   }
 
+  public async listAllObjects(bucket: string, prefix: string): Promise<string[]> {
+    const keys: string[] = [];
+    let continuationToken: string | undefined;
+    do {
+      const result = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: prefix || undefined,
+          ...(continuationToken !== undefined && { ContinuationToken: continuationToken }),
+        }),
+      );
+      for (const obj of result.Contents ?? []) {
+        if (obj.Key !== undefined && !obj.Key.endsWith('/')) {
+          keys.push(obj.Key);
+        }
+      }
+      continuationToken = result.NextContinuationToken;
+    } while (continuationToken !== undefined);
+    return keys;
+  }
+
   public async getObjectStream(bucket: string, key: string): Promise<ObjectStream> {
     const result = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     if (result.Body === undefined) {

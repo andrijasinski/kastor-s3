@@ -34,6 +34,15 @@ export class FakeStorage implements Storage {
     return this.objectsByBucket[bucket] ?? [];
   }
 
+  public async listAllObjects(bucket: string, prefix: string): Promise<string[]> {
+    if (this.options.fail === true) {
+      throw new Error('FakeStorage: forced failure');
+    }
+    return (this.objectsByBucket[bucket] ?? [])
+      .filter((obj) => !obj.isPrefix && obj.key.startsWith(prefix))
+      .map((obj) => obj.key);
+  }
+
   public async getObjectStream(_bucket: string, _key: string): Promise<ObjectStream> {
     if (this.options.fail === true) {
       throw new Error('FakeStorage: forced failure');
