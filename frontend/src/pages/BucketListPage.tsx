@@ -10,15 +10,21 @@ export const BucketListPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     void fetchBuckets()
       .then((data) => {
-        setBuckets(data);
-        setLoading(false);
+        if (!cancelled) {
+          setBuckets(data);
+          setLoading(false);
+        }
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        setLoading(false);
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+          setLoading(false);
+        }
       });
+    return () => { cancelled = true; };
   }, []);
 
   if (loading) {

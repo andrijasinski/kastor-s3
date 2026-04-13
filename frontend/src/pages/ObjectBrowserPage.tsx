@@ -54,17 +54,23 @@ export const ObjectBrowserPage = () => {
     if (bucket === undefined) {
       return;
     }
+    let cancelled = false;
     setLoading(true);
     setError(null);
     void fetchObjects(bucket, prefix)
       .then((data) => {
-        setObjects(data);
-        setLoading(false);
+        if (!cancelled) {
+          setObjects(data);
+          setLoading(false);
+        }
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        setLoading(false);
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+          setLoading(false);
+        }
       });
+    return () => { cancelled = true; };
   }, [bucket, prefix]);
 
   if (bucket === undefined) {

@@ -9,7 +9,3 @@ export interface S3Object {
   lastModified: string;
   isPrefix: boolean;
 }
-
-export interface PresignedURL {
-  url: string;
-}
