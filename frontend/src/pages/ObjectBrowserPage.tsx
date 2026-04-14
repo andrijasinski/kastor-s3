@@ -13,6 +13,7 @@ import {
 	Table,
 	Text,
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconDownload, IconFolderUp, IconTrash, IconUpload } from '@tabler/icons-react';
 import type { S3Object } from '@shared/types';
 import { fetchObjects } from '../api/client';
@@ -219,6 +220,7 @@ export const ObjectBrowserPage = () => {
 	};
 
 	const uploading = uploadProgress !== null;
+	const isMobile = useMediaQuery('(max-width: 768px)') ?? false;
 
 	return (
 		<Container size="lg" py="xl">
@@ -262,7 +264,7 @@ export const ObjectBrowserPage = () => {
 					</Button>
 				</Group>
 			</Modal>
-			<Breadcrumbs mb="lg">
+			<Breadcrumbs mb="lg" style={{ rowGap: 8 }}>
 				{crumbs.map((crumb, i) =>
 					i === crumbs.length - 1 ? (
 						<Text key={crumb.prefix} span fw={500}>
@@ -283,30 +285,32 @@ export const ObjectBrowserPage = () => {
 				)}
 			</Breadcrumbs>
 
-			<Group justify="flex-end" mb="md">
-				<Button
-					leftSection={<IconUpload size={14} />}
-					variant="default"
-					size="sm"
-					disabled={uploading}
-					onClick={() => {
-						fileInputRef.current?.click();
-					}}
-				>
-					Upload files
-				</Button>
-				<Button
-					leftSection={<IconFolderUp size={14} />}
-					variant="default"
-					size="sm"
-					disabled={uploading}
-					onClick={() => {
-						folderInputRef.current?.click();
-					}}
-				>
-					Upload folder
-				</Button>
-			</Group>
+			{!isMobile && (
+				<Group justify="flex-end" mb="md">
+					<Button
+						leftSection={<IconUpload size={14} />}
+						variant="default"
+						size="sm"
+						disabled={uploading}
+						onClick={() => {
+							fileInputRef.current?.click();
+						}}
+					>
+						Upload files
+					</Button>
+					<Button
+						leftSection={<IconFolderUp size={14} />}
+						variant="default"
+						size="sm"
+						disabled={uploading}
+						onClick={() => {
+							folderInputRef.current?.click();
+						}}
+					>
+						Upload folder
+					</Button>
+				</Group>
+			)}
 
 			{uploadProgress !== null && (
 				<Stack gap="xs" mb="md">
@@ -355,8 +359,8 @@ export const ObjectBrowserPage = () => {
 					<Table.Thead>
 						<Table.Tr>
 							<Table.Th>Name</Table.Th>
-							<Table.Th>Size</Table.Th>
-							<Table.Th>Last modified</Table.Th>
+							{!isMobile && <Table.Th>Size</Table.Th>}
+							{!isMobile && <Table.Th>Last modified</Table.Th>}
 							<Table.Th />
 						</Table.Tr>
 					</Table.Thead>
@@ -368,6 +372,7 @@ export const ObjectBrowserPage = () => {
 										<Anchor
 											component="button"
 											type="button"
+											style={{ textAlign: 'left' }}
 											onClick={() => {
 												navigateTo(obj.key);
 											}}
@@ -378,16 +383,20 @@ export const ObjectBrowserPage = () => {
 										<Text span>{obj.key.slice(prefix.length)}</Text>
 									)}
 								</Table.Td>
-								<Table.Td>
-									<Text span c="dimmed">
-										{obj.isPrefix ? '—' : formatSize(obj.size)}
-									</Text>
-								</Table.Td>
-								<Table.Td>
-									<Text span c="dimmed">
-										{obj.isPrefix ? '—' : formatDate(obj.lastModified)}
-									</Text>
-								</Table.Td>
+								{!isMobile && (
+									<Table.Td>
+										<Text span c="dimmed">
+											{obj.isPrefix ? '—' : formatSize(obj.size)}
+										</Text>
+									</Table.Td>
+								)}
+								{!isMobile && (
+									<Table.Td>
+										<Text span c="dimmed">
+											{obj.isPrefix ? '—' : formatDate(obj.lastModified)}
+										</Text>
+									</Table.Td>
+								)}
 								<Table.Td>
 									<Group gap="xs" justify="flex-end" wrap="nowrap">
 										{obj.isPrefix ? (
@@ -404,20 +413,22 @@ export const ObjectBrowserPage = () => {
 												>
 													<IconDownload size={14} />
 												</ActionIcon>
-												<ActionIcon
-													onClick={() => {
-														setPendingDelete({
-															key: obj.key,
-															isFolder: true,
-														});
-													}}
-													variant="subtle"
-													color="red"
-													size="sm"
-													aria-label={`Delete ${obj.key}`}
-												>
-													<IconTrash size={14} />
-												</ActionIcon>
+												{!isMobile && (
+													<ActionIcon
+														onClick={() => {
+															setPendingDelete({
+																key: obj.key,
+																isFolder: true,
+															});
+														}}
+														variant="subtle"
+														color="red"
+														size="sm"
+														aria-label={`Delete ${obj.key}`}
+													>
+														<IconTrash size={14} />
+													</ActionIcon>
+												)}
 											</>
 										) : (
 											<>
@@ -432,20 +443,22 @@ export const ObjectBrowserPage = () => {
 												>
 													<IconDownload size={14} />
 												</ActionIcon>
-												<ActionIcon
-													onClick={() => {
-														setPendingDelete({
-															key: obj.key,
-															isFolder: false,
-														});
-													}}
-													variant="subtle"
-													color="red"
-													size="sm"
-													aria-label={`Delete ${obj.key}`}
-												>
-													<IconTrash size={14} />
-												</ActionIcon>
+												{!isMobile && (
+													<ActionIcon
+														onClick={() => {
+															setPendingDelete({
+																key: obj.key,
+																isFolder: false,
+															});
+														}}
+														variant="subtle"
+														color="red"
+														size="sm"
+														aria-label={`Delete ${obj.key}`}
+													>
+														<IconTrash size={14} />
+													</ActionIcon>
+												)}
 											</>
 										)}
 									</Group>
