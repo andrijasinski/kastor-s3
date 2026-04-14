@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Container, Title, Stack, Text, Paper, Anchor } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { Link } from 'react-router-dom';
 import type { Bucket } from '@shared/types';
 import { fetchBuckets } from '../api/client';
 
 export const BucketListPage = () => {
 	const [buckets, setBuckets] = useState<Bucket[]>([]);
-	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
@@ -20,7 +20,11 @@ export const BucketListPage = () => {
 			})
 			.catch((err: unknown) => {
 				if (!cancelled) {
-					setError(err instanceof Error ? err.message : 'Unknown error');
+					notifications.show({
+						title: 'Failed to load buckets',
+						message: err instanceof Error ? err.message : 'Unknown error',
+						color: 'red',
+					});
 					setLoading(false);
 				}
 			});
@@ -31,10 +35,6 @@ export const BucketListPage = () => {
 
 	if (loading) {
 		return <Text>Loading…</Text>;
-	}
-
-	if (error !== null) {
-		return <Text c="red">{error}</Text>;
 	}
 
 	return (

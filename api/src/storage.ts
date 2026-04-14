@@ -10,6 +10,7 @@ export interface Storage {
 	listBuckets(): Promise<Bucket[]>;
 	listObjects(bucket: string, prefix: string): Promise<S3Object[]>;
 	listAllObjects(bucket: string, prefix: string): Promise<string[]>;
+	getFolderSize(bucket: string, prefix: string): Promise<number>;
 	getObjectStream(bucket: string, key: string): Promise<ObjectStream>;
 	putObject(bucket: string, key: string, body: Uint8Array, contentType?: string): Promise<void>;
 	deleteObject(bucket: string, key: string): Promise<void>;

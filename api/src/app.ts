@@ -88,6 +88,19 @@ export function createApp(storage: Storage): Hono {
 		}
 	});
 
+	app.get('/api/buckets/:bucket/folder-size', async (c) => {
+		const { bucket } = c.req.param();
+		const prefix = c.req.query('prefix') ?? '';
+		try {
+			const size = await storage.getFolderSize(bucket, prefix);
+			return c.json({ size });
+		} catch (err) {
+			const message = err instanceof Error ? err.message : 'Unknown error';
+			process.stderr.write(`GET /api/buckets/${bucket}/folder-size error: ${message}\n`);
+			return c.json({ error: message }, 500);
+		}
+	});
+
 	app.get('/api/buckets/:bucket/download', async (c) => {
 		const { bucket } = c.req.param();
 		const key = c.req.query('key');

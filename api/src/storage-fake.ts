@@ -45,6 +45,15 @@ export class FakeStorage implements Storage {
 			.map((obj) => obj.key);
 	}
 
+	public async getFolderSize(bucket: string, prefix: string): Promise<number> {
+		if (this.options.fail === true) {
+			throw new Error('FakeStorage: forced failure');
+		}
+		return (this.objectsByBucket[bucket] ?? [])
+			.filter((obj) => !obj.isPrefix && obj.key.startsWith(prefix))
+			.reduce((sum, obj) => sum + obj.size, 0);
+	}
+
 	public async putObject(
 		bucket: string,
 		key: string,

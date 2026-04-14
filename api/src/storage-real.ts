@@ -79,6 +79,27 @@ export class S3Storage implements Storage {
 		return keys;
 	}
 
+	public async getFolderSize(bucket: string, prefix: string): Promise<number> {
+		let totalSize = 0;
+		let continuationToken: string | undefined;
+		do {
+			const result = await this.client.send(
+				new ListObjectsV2Command({
+					Bucket: bucket,
+					Prefix: prefix || undefined,
+					...(continuationToken !== undefined && {
+						ContinuationToken: continuationToken,
+					}),
+				}),
+			);
+			for (const obj of result.Contents ?? []) {
+				totalSize += obj.Size ?? 0;
+			}
+			continuationToken = result.NextContinuationToken;
+		} while (continuationToken !== undefined);
+		return totalSize;
+	}
+
 	public async getObjectStream(bucket: string, key: string): Promise<ObjectStream> {
 		const result = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
 		if (result.Body === undefined) {

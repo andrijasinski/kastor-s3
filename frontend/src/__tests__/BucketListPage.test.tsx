@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { BucketListPage } from '../pages/BucketListPage';
@@ -28,6 +29,7 @@ afterAll(() => {
 const renderPage = () =>
 	render(
 		<MantineProvider>
+			<Notifications />
 			<BrowserRouter>
 				<BucketListPage />
 			</BrowserRouter>
@@ -43,11 +45,11 @@ describe('BucketListPage', () => {
 		});
 	});
 
-	it('shows error on fetch failure', async () => {
+	it('shows error toast on fetch failure', async () => {
 		server.use(http.get('/api/buckets', () => new HttpResponse(null, { status: 500 })));
 		renderPage();
 		await waitFor(() => {
-			expect(screen.getByText(/Failed to fetch buckets/i)).toBeInTheDocument();
+			expect(screen.getByText('Failed to load buckets')).toBeInTheDocument();
 		});
 	});
 });

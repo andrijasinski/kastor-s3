@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { ObjectBrowserPage } from '../pages/ObjectBrowserPage';
@@ -29,6 +30,7 @@ afterAll(() => {
 const renderPage = (path: string) =>
 	render(
 		<MantineProvider>
+			<Notifications />
 			<MemoryRouter initialEntries={[path]}>
 				<Routes>
 					<Route path="/buckets/:bucket" element={<ObjectBrowserPage />} />
@@ -86,6 +88,50 @@ describe('ObjectBrowserPage', () => {
 			expect(
 				screen.queryByRole('link', { name: /download docs\//i }),
 			).not.toBeInTheDocument();
+		});
+	});
+
+	it('shows calculate-size button for folder rows', async () => {
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => {
+			expect(
+				screen.getByRole('button', { name: /calculate size of docs\//i }),
+			).toBeInTheDocument();
+		});
+	});
+
+	it('shows loader then formatted size after clicking calculate', async () => {
+		server.use(
+			http.get('/api/buckets/:bucket/folder-size', async () => {
+				await new Promise((r) => setTimeout(r, 50));
+				return HttpResponse.json({ size: 2048 });
+			}),
+		);
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		const btn = await screen.findByRole('button', { name: /calculate size of docs\//i });
+		await user.click(btn);
+		expect(screen.queryByRole('button', { name: /calculate size of docs\//i })).not.toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText('2.0 KB')).toBeInTheDocument();
+		});
+	});
+
+	it('restores calculate button and shows error toast on folder-size failure', async () => {
+		server.use(
+			http.get('/api/buckets/:bucket/folder-size', () =>
+				HttpResponse.json({ error: 'S3 access denied' }, { status: 500 }),
+			),
+		);
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		const btn = await screen.findByRole('button', { name: /calculate size of docs\//i });
+		await user.click(btn);
+		await waitFor(() => {
+			expect(screen.getByText('S3 access denied')).toBeInTheDocument();
+			expect(
+				screen.getByRole('button', { name: /calculate size of docs\//i }),
+			).toBeInTheDocument();
 		});
 	});
 

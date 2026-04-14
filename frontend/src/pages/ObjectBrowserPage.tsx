@@ -7,6 +7,7 @@ import {
 	Button,
 	Container,
 	Group,
+	Loader,
 	Modal,
 	Progress,
 	Stack,
@@ -14,9 +15,10 @@ import {
 	Text,
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import { IconDownload, IconFolderUp, IconTrash, IconUpload } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { IconCalculator, IconDownload, IconFolderUp, IconTrash, IconUpload } from '@tabler/icons-react';
 import type { S3Object } from '@shared/types';
-import { fetchObjects } from '../api/client';
+import { fetchFolderSize, fetchObjects } from '../api/client';
 
 const triggerBlobDownload = (blob: Blob, filename: string): void => {
 	const url = URL.createObjectURL(blob);
@@ -75,15 +77,15 @@ export const ObjectBrowserPage = () => {
 
 	const [objects, setObjects] = useState<S3Object[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 	const [downloadingFolder, setDownloadingFolder] = useState<string | null>(null);
 	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
-	const [uploadError, setUploadError] = useState<string | null>(null);
 	const [refreshKey, setRefreshKey] = useState(0);
 	const [pendingDelete, setPendingDelete] = useState<{ key: string; isFolder: boolean } | null>(
 		null,
 	);
 	const [deleting, setDeleting] = useState(false);
+	const [folderSizes, setFolderSizes] = useState<Map<string, number>>(new Map());
+	const [calculatingFolders, setCalculatingFolders] = useState<Set<string>>(new Set());
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const folderInputRef = useRef<HTMLInputElement>(null);
@@ -98,7 +100,6 @@ export const ObjectBrowserPage = () => {
 		}
 		let cancelled = false;
 		setLoading(true);
-		setError(null);
 		void fetchObjects(bucket, prefix)
 			.then((data) => {
 				if (!cancelled) {
@@ -108,7 +109,11 @@ export const ObjectBrowserPage = () => {
 			})
 			.catch((err: unknown) => {
 				if (!cancelled) {
-					setError(err instanceof Error ? err.message : 'Unknown error');
+					notifications.show({
+						title: 'Failed to load objects',
+						message: err instanceof Error ? err.message : 'Unknown error',
+						color: 'red',
+					});
 					setLoading(false);
 				}
 			});
@@ -120,6 +125,38 @@ export const ObjectBrowserPage = () => {
 	if (bucket === undefined) {
 		return null;
 	}
+
+	const invalidateAncestorSizes = (changedPrefix: string) => {
+		setFolderSizes((prev) => {
+			const next = new Map(prev);
+			for (const key of next.keys()) {
+				if (changedPrefix.startsWith(key)) {
+					next.delete(key);
+				}
+			}
+			return next;
+		});
+	};
+
+	const calculateFolderSize = async (folderPrefix: string): Promise<void> => {
+		setCalculatingFolders((prev) => new Set(prev).add(folderPrefix));
+		try {
+			const size = await fetchFolderSize(bucket, folderPrefix);
+			setFolderSizes((prev) => new Map(prev).set(folderPrefix, size));
+		} catch (err) {
+			notifications.show({
+				title: 'Failed to calculate folder size',
+				message: err instanceof Error ? err.message : 'Unknown error',
+				color: 'red',
+			});
+		} finally {
+			setCalculatingFolders((prev) => {
+				const next = new Set(prev);
+				next.delete(folderPrefix);
+				return next;
+			});
+		}
+	};
 
 	const crumbs = buildBreadcrumbs(bucket, prefix);
 
@@ -138,8 +175,12 @@ export const ObjectBrowserPage = () => {
 			}
 			const blob = await res.blob();
 			triggerBlobDownload(blob, `${folderName}.zip`);
-		} catch {
-			// silently ignore — no error state to avoid disrupting the list
+		} catch (err) {
+			notifications.show({
+				title: 'Failed to download folder',
+				message: err instanceof Error ? err.message : 'Unknown error',
+				color: 'red',
+			});
 		} finally {
 			setDownloadingFolder(null);
 		}
@@ -159,9 +200,14 @@ export const ObjectBrowserPage = () => {
 				throw new Error(`Delete failed: ${res.status}`);
 			}
 			setObjects((objs) => objs.filter((obj) => obj.key !== pendingDelete.key));
+			invalidateAncestorSizes(pendingDelete.isFolder ? pendingDelete.key : prefix);
 			setPendingDelete(null);
-		} catch {
-			// silently ignore — no error state to avoid disrupting the list
+		} catch (err) {
+			notifications.show({
+				title: 'Failed to delete',
+				message: err instanceof Error ? err.message : 'Unknown error',
+				color: 'red',
+			});
 		} finally {
 			setDeleting(false);
 		}
@@ -169,7 +215,6 @@ export const ObjectBrowserPage = () => {
 
 	const uploadFiles = async (files: FileList): Promise<void> => {
 		const fileArray = Array.from(files);
-		setUploadError(null);
 		try {
 			for (const [i, file] of fileArray.entries()) {
 				const relativePath =
@@ -212,9 +257,14 @@ export const ObjectBrowserPage = () => {
 				});
 			}
 		} catch (err) {
-			setUploadError(err instanceof Error ? err.message : 'Upload failed');
+			notifications.show({
+				title: 'Upload failed',
+				message: err instanceof Error ? err.message : 'Unknown error',
+				color: 'red',
+			});
 		} finally {
 			setUploadProgress(null);
+			invalidateAncestorSizes(prefix);
 			setRefreshKey((k) => k + 1);
 		}
 	};
@@ -326,12 +376,6 @@ export const ObjectBrowserPage = () => {
 				</Stack>
 			)}
 
-			{uploadError !== null && (
-				<Text c="red" mb="md" size="sm">
-					{uploadError}
-				</Text>
-			)}
-
 			<input
 				ref={fileInputRef}
 				type="file"
@@ -357,9 +401,8 @@ export const ObjectBrowserPage = () => {
 			/>
 
 			{loading && <Text>Loading…</Text>}
-			{error !== null && <Text c="red">{error}</Text>}
 
-			{!loading && error === null && (
+			{!loading && (
 				<Table highlightOnHover>
 					<Table.Thead>
 						<Table.Tr>
@@ -390,9 +433,31 @@ export const ObjectBrowserPage = () => {
 								</Table.Td>
 								{!isMobile && (
 									<Table.Td>
-										<Text span c="dimmed">
-											{obj.isPrefix ? '—' : formatSize(obj.size)}
-										</Text>
+										{obj.isPrefix ? (
+											calculatingFolders.has(obj.key) ? (
+												<Loader size="xs" />
+											) : folderSizes.has(obj.key) ? (
+												<Text span c="dimmed">
+													{formatSize(folderSizes.get(obj.key)!)}
+												</Text>
+											) : (
+												<ActionIcon
+													onClick={() => {
+														void calculateFolderSize(obj.key);
+													}}
+													variant="subtle"
+													color="gray"
+													size="sm"
+													aria-label={`Calculate size of ${obj.key}`}
+												>
+													<IconCalculator size={14} />
+												</ActionIcon>
+											)
+										) : (
+											<Text span c="dimmed">
+												{formatSize(obj.size)}
+											</Text>
+										)}
 									</Table.Td>
 								)}
 								{!isMobile && (
