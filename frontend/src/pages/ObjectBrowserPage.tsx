@@ -265,24 +265,27 @@ export const ObjectBrowserPage = () => {
 				</Group>
 			</Modal>
 			<Breadcrumbs mb="lg" style={{ rowGap: 8 }}>
-				{crumbs.map((crumb, i) =>
-					i === crumbs.length - 1 ? (
-						<Text key={crumb.prefix} span fw={500}>
-							{crumb.label}
-						</Text>
-					) : (
+				{crumbs.map((crumb, i) => {
+					const isLast = i === crumbs.length - 1;
+					const isBucket = i === 0;
+					if (isLast && !isBucket) {
+						return (
+							<Text key={crumb.prefix} span fw={500}>
+								{crumb.label}
+							</Text>
+						);
+					}
+					return (
 						<Anchor
 							key={crumb.prefix}
 							component="button"
 							type="button"
-							onClick={() => {
-								navigateTo(crumb.prefix);
-							}}
+							onClick={() => navigateTo(crumb.prefix)}
 						>
 							{crumb.label}
 						</Anchor>
-					),
-				)}
+					);
+				})}
 			</Breadcrumbs>
 
 			{!isMobile && (
