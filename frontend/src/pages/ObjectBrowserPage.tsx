@@ -279,7 +279,7 @@ export const ObjectBrowserPage = () => {
 	const isMobile = useMediaQuery('(max-width: 768px)') ?? false;
 
 	return (
-		<Container size="lg" py="xl">
+		<Container size="lg" pt="md" pb="xl">
 			<Modal
 				opened={pendingDelete !== null}
 				onClose={() => {
@@ -321,7 +321,7 @@ export const ObjectBrowserPage = () => {
 				</Group>
 			</Modal>
 			<Group align="center" mb="md" gap={24} style={{ flexWrap: 'nowrap' }}>
-				<Breadcrumbs style={{ rowGap: 8, flex: 1, minWidth: 0 }}>
+				<Breadcrumbs style={{ rowGap: 8, flex: 1, minWidth: 0, paddingLeft: 8 }}>
 					{crumbs.map((crumb, i) => {
 						const isLast = i === crumbs.length - 1;
 						const isBucket = i === 0;
