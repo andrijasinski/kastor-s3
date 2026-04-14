@@ -64,7 +64,10 @@ cd api && bun test
 ## Features
 
 - Browse buckets and navigate object prefixes as folders
-- Upload files with progress tracking
+- Upload files or entire folders with progress tracking
 - Download single files or entire folders as ZIP
-- Delete objects with confirmation
+- Delete objects and folders with confirmation
+- Preview files inline - images are rendered
+- Navigate between files with prev/next arrows in the preview page
+- Calculate folder size on demand
 - Responsive UI — mobile is read-only; desktop has full controls

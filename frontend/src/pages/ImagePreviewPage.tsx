@@ -64,7 +64,7 @@ export const ImagePreviewPage = () => {
 	return (
 		<>
 			<Container size="lg" pt="md" pb="xl">
-				<Breadcrumbs mb="xl" style={{ paddingLeft: 8 }}>
+				<Breadcrumbs mb="xl" style={{ rowGap: 8, flex: 1, minWidth: 0, paddingLeft: 8 }}>
 					{crumbs.map((crumb) =>
 						crumb.href !== null ? (
 							<Anchor key={crumb.label} component={Link} to={crumb.href}>
