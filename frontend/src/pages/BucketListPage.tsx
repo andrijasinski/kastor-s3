@@ -43,7 +43,7 @@ export const BucketListPage = () => {
 			<Stack gap="xs">
 				{buckets.map((bucket) => (
 					<Paper key={bucket.name} withBorder p="sm">
-						<Anchor component={Link} to={`/buckets/${bucket.name}`}>
+						<Anchor component={Link} to={`/buckets/${bucket.name}`} style={{ wordBreak: 'break-all' }}>
 							{bucket.name}
 						</Anchor>
 					</Paper>

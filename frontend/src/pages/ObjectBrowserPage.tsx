@@ -264,56 +264,58 @@ export const ObjectBrowserPage = () => {
 					</Button>
 				</Group>
 			</Modal>
-			<Breadcrumbs mb="lg" style={{ rowGap: 8 }}>
-				{crumbs.map((crumb, i) => {
-					const isLast = i === crumbs.length - 1;
-					const isBucket = i === 0;
-					if (isLast && !isBucket) {
+			<Group align="center" mb="md" gap={24} style={{ flexWrap: 'nowrap' }}>
+				<Breadcrumbs style={{ rowGap: 8, flex: 1, minWidth: 0 }}>
+					{crumbs.map((crumb, i) => {
+						const isLast = i === crumbs.length - 1;
+						const isBucket = i === 0;
+						if (isLast && !isBucket) {
+							return (
+								<Text key={crumb.prefix} span fw={500}>
+									{crumb.label}
+								</Text>
+							);
+						}
 						return (
-							<Text key={crumb.prefix} span fw={500}>
+							<Anchor
+								key={crumb.prefix}
+								component="button"
+								type="button"
+								onClick={() => navigateTo(crumb.prefix)}
+							>
 								{crumb.label}
-							</Text>
+							</Anchor>
 						);
-					}
-					return (
-						<Anchor
-							key={crumb.prefix}
-							component="button"
-							type="button"
-							onClick={() => navigateTo(crumb.prefix)}
-						>
-							{crumb.label}
-						</Anchor>
-					);
-				})}
-			</Breadcrumbs>
+					})}
+				</Breadcrumbs>
 
-			{!isMobile && (
-				<Group justify="flex-end" mb="md">
-					<Button
-						leftSection={<IconUpload size={14} />}
-						variant="default"
-						size="sm"
-						disabled={uploading}
-						onClick={() => {
-							fileInputRef.current?.click();
-						}}
-					>
-						Upload files
-					</Button>
-					<Button
-						leftSection={<IconFolderUp size={14} />}
-						variant="default"
-						size="sm"
-						disabled={uploading}
-						onClick={() => {
-							folderInputRef.current?.click();
-						}}
-					>
-						Upload folder
-					</Button>
-				</Group>
-			)}
+				{!isMobile && (
+					<Group gap="xs" style={{ flexShrink: 0 }}>
+						<Button
+							leftSection={<IconUpload size={14} />}
+							variant="default"
+							size="sm"
+							disabled={uploading}
+							onClick={() => {
+								fileInputRef.current?.click();
+							}}
+						>
+							Upload files
+						</Button>
+						<Button
+							leftSection={<IconFolderUp size={14} />}
+							variant="default"
+							size="sm"
+							disabled={uploading}
+							onClick={() => {
+								folderInputRef.current?.click();
+							}}
+						>
+							Upload folder
+						</Button>
+					</Group>
+				)}
+			</Group>
 
 			{uploadProgress !== null && (
 				<Stack gap="xs" mb="md">
