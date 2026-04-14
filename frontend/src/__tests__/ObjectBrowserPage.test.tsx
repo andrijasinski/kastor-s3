@@ -111,7 +111,9 @@ describe('ObjectBrowserPage', () => {
 		renderPage('/buckets/my-bucket');
 		const btn = await screen.findByRole('button', { name: /calculate size of docs\//i });
 		await user.click(btn);
-		expect(screen.queryByRole('button', { name: /calculate size of docs\//i })).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole('button', { name: /calculate size of docs\//i }),
+		).not.toBeInTheDocument();
 		await waitFor(() => {
 			expect(screen.getByText('2.0 KB')).toBeInTheDocument();
 		});
@@ -132,6 +134,14 @@ describe('ObjectBrowserPage', () => {
 			expect(
 				screen.getByRole('button', { name: /calculate size of docs\//i }),
 			).toBeInTheDocument();
+		});
+	});
+
+	it('renders filename as a link to the preview page', async () => {
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => {
+			const link = screen.getByRole('link', { name: 'readme.txt' });
+			expect(link).toHaveAttribute('href', '/buckets/my-bucket/preview?key=readme.txt');
 		});
 	});
 

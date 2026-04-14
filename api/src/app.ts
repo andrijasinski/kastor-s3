@@ -101,6 +101,30 @@ export function createApp(storage: Storage): Hono {
 		}
 	});
 
+	app.get('/api/buckets/:bucket/object', async (c) => {
+		const { bucket } = c.req.param();
+		const key = c.req.query('key');
+		if (key === undefined || key === '') {
+			return c.json({ error: 'Missing key parameter' }, 400);
+		}
+		try {
+			const { body, contentType, contentLength } = await storage.getObjectStream(bucket, key);
+			const headers = new Headers();
+			if (contentType !== undefined) {
+				headers.set('Content-Type', contentType);
+			}
+			if (contentLength !== undefined) {
+				headers.set('Content-Length', contentLength.toString());
+			}
+			return new Response(body, { headers });
+		} catch (err) {
+			process.stderr.write(
+				`GET /api/buckets/${bucket}/object error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
+			);
+			return c.json({ error: 'Failed to stream object' }, 500);
+		}
+	});
+
 	app.get('/api/buckets/:bucket/download', async (c) => {
 		const { bucket } = c.req.param();
 		const key = c.req.query('key');

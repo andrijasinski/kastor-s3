@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import {
 	ActionIcon,
 	Anchor,
@@ -16,7 +16,13 @@ import {
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconCalculator, IconDownload, IconFolderUp, IconTrash, IconUpload } from '@tabler/icons-react';
+import {
+	IconCalculator,
+	IconDownload,
+	IconFolderUp,
+	IconTrash,
+	IconUpload,
+} from '@tabler/icons-react';
 import type { S3Object } from '@shared/types';
 import { fetchFolderSize, fetchObjects } from '../api/client';
 
@@ -428,7 +434,13 @@ export const ObjectBrowserPage = () => {
 											{obj.key.slice(prefix.length)}
 										</Anchor>
 									) : (
-										<Text span>{obj.key.slice(prefix.length)}</Text>
+										<Anchor
+											component={Link}
+											to={`/buckets/${encodeURIComponent(bucket)}/preview?key=${encodeURIComponent(obj.key)}`}
+											state={{ siblings: objects }}
+										>
+											{obj.key.slice(prefix.length)}
+										</Anchor>
 									)}
 								</Table.Td>
 								{!isMobile && (

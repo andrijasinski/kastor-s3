@@ -6,17 +6,17 @@ A personal web-based file manager for S3-compatible storage. Browse buckets, upl
 
 ## Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Vite + React 19 + Mantine 7 + React Router 7 |
-| Backend | Bun + Hono 4 + AWS SDK v3 |
-| Deployment | Docker Compose (nginx + Bun API) |
+| Layer      | Technology                                   |
+| ---------- | -------------------------------------------- |
+| Frontend   | Vite + React 19 + Mantine 7 + React Router 7 |
+| Backend    | Bun + Hono 4 + AWS SDK v3                    |
+| Deployment | Docker Compose (nginx + Bun API)             |
 
 ## Running
 
 **Prerequisites:** Docker and Docker Compose.
 
-Copy `.env.example` to `.env` and fill in your credentials:
+Copy this to `.env` and fill in your credentials:
 
 ```env
 S3_ENDPOINT=           # S3-compatible endpoint URL

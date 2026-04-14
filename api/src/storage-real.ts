@@ -7,6 +7,7 @@ import {
 	DeleteObjectCommand,
 	DeleteObjectsCommand,
 } from '@aws-sdk/client-s3';
+
 import type { Bucket, S3Object } from '@shared/types';
 import type { ObjectStream, Storage } from './storage';
 
