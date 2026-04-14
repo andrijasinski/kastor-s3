@@ -1,9 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { MantineProvider } from '@mantine/core';
+import { MantineProvider, localStorageColorSchemeManager } from '@mantine/core';
 import '@mantine/core/styles.css';
 import { App } from './App';
+
+const colorSchemeManager = localStorageColorSchemeManager({ key: 'kastor-color-scheme' });
 
 const rootEl = document.getElementById('root');
 if (rootEl === null) {
@@ -13,7 +15,7 @@ if (rootEl === null) {
 createRoot(rootEl).render(
 	<StrictMode>
 		<BrowserRouter>
-			<MantineProvider>
+			<MantineProvider colorSchemeManager={colorSchemeManager} defaultColorScheme="auto">
 				<App />
 			</MantineProvider>
 		</BrowserRouter>
