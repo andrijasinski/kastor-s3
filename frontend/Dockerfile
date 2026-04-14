@@ -12,6 +12,7 @@ WORKDIR /app/frontend
 RUN bun install
 
 COPY frontend/src/ ./src/
+COPY frontend/public/ ./public/
 COPY frontend/index.html ./
 
 RUN bun run build
