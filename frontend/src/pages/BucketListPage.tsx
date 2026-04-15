@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Container, Title, Stack, Text, Paper, Anchor } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { Link } from 'react-router-dom';
-import type { Bucket } from '@shared/types';
-import { fetchBuckets } from '../api/client';
+import {useEffect, useState} from 'react';
+import {Container, Title, Stack, Text, Paper, Anchor} from '@mantine/core';
+import {notifications} from '@mantine/notifications';
+import {Link} from 'react-router-dom';
+import type {Bucket} from '@shared/types';
+import {fetchBuckets} from '../api/client';
 
 export const BucketListPage = () => {
 	const [buckets, setBuckets] = useState<Bucket[]>([]);
@@ -46,7 +46,7 @@ export const BucketListPage = () => {
 						<Anchor
 							component={Link}
 							to={`/buckets/${bucket.name}`}
-							style={{ wordBreak: 'break-all' }}
+							style={{wordBreak: 'break-all'}}
 						>
 							{bucket.name}
 						</Anchor>

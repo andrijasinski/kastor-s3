@@ -1,13 +1,13 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import { MantineProvider, localStorageColorSchemeManager } from '@mantine/core';
+import {StrictMode} from 'react';
+import {createRoot} from 'react-dom/client';
+import {BrowserRouter} from 'react-router-dom';
+import {MantineProvider, localStorageColorSchemeManager} from '@mantine/core';
 import '@mantine/core/styles.css';
-import { Notifications } from '@mantine/notifications';
+import {Notifications} from '@mantine/notifications';
 import '@mantine/notifications/styles.css';
-import { App } from './App';
+import {App} from './App';
 
-const colorSchemeManager = localStorageColorSchemeManager({ key: 'kastor-color-scheme' });
+const colorSchemeManager = localStorageColorSchemeManager({key: 'kastor-color-scheme'});
 
 const rootEl = document.getElementById('root');
 if (rootEl === null) {

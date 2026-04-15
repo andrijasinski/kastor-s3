@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import {useEffect, useRef, useState} from 'react';
+import {useParams, useSearchParams, Link} from 'react-router-dom';
 import {
 	ActionIcon,
 	Anchor,
@@ -14,8 +14,8 @@ import {
 	Table,
 	Text,
 } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
-import { notifications } from '@mantine/notifications';
+import {useMediaQuery} from '@mantine/hooks';
+import {notifications} from '@mantine/notifications';
 import {
 	IconCalculator,
 	IconDownload,
@@ -23,8 +23,8 @@ import {
 	IconTrash,
 	IconUpload,
 } from '@tabler/icons-react';
-import type { S3Object } from '@shared/types';
-import { fetchFolderSize, fetchObjects } from '../api/client';
+import type {S3Object} from '@shared/types';
+import {fetchFolderSize, fetchObjects} from '../api/client';
 
 const triggerBlobDownload = (blob: Blob, filename: string): void => {
 	const url = URL.createObjectURL(blob);
@@ -38,7 +38,7 @@ const triggerBlobDownload = (blob: Blob, filename: string): void => {
 const buildBreadcrumbs = (bucket: string, prefix: string) => {
 	const parts = prefix.split('/').filter((p) => p.length > 0);
 	return [
-		{ label: bucket, prefix: '' },
+		{label: bucket, prefix: ''},
 		...parts.map((part, i) => ({
 			label: part,
 			prefix: `${parts.slice(0, i + 1).join('/')}/`,
@@ -77,7 +77,7 @@ interface UploadProgress {
 }
 
 export const ObjectBrowserPage = () => {
-	const { bucket } = useParams<{ bucket: string }>();
+	const {bucket} = useParams<{bucket: string}>();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const prefix = searchParams.get('prefix') ?? '';
 
@@ -86,7 +86,7 @@ export const ObjectBrowserPage = () => {
 	const [downloadingFolder, setDownloadingFolder] = useState<string | null>(null);
 	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 	const [refreshKey, setRefreshKey] = useState(0);
-	const [pendingDelete, setPendingDelete] = useState<{ key: string; isFolder: boolean } | null>(
+	const [pendingDelete, setPendingDelete] = useState<{key: string; isFolder: boolean} | null>(
 		null,
 	);
 	const [deleting, setDeleting] = useState(false);
@@ -167,7 +167,7 @@ export const ObjectBrowserPage = () => {
 	const crumbs = buildBreadcrumbs(bucket, prefix);
 
 	const navigateTo = (newPrefix: string) => {
-		setSearchParams(newPrefix !== '' ? { prefix: newPrefix } : {});
+		setSearchParams(newPrefix !== '' ? {prefix: newPrefix} : {});
 	};
 
 	const downloadFolder = async (folderPrefix: string): Promise<void> => {
@@ -201,7 +201,7 @@ export const ObjectBrowserPage = () => {
 			const url = pendingDelete.isFolder
 				? `/api/buckets/${encodeURIComponent(bucket)}/folder?prefix=${encodeURIComponent(pendingDelete.key)}`
 				: `/api/buckets/${encodeURIComponent(bucket)}/object?key=${encodeURIComponent(pendingDelete.key)}`;
-			const res = await fetch(url, { method: 'DELETE' });
+			const res = await fetch(url, {method: 'DELETE'});
 			if (!res.ok) {
 				throw new Error(`Delete failed: ${res.status}`);
 			}
@@ -294,7 +294,7 @@ export const ObjectBrowserPage = () => {
 					{pendingDelete?.isFolder
 						? 'Are you sure you want to delete all objects in '
 						: 'Are you sure you want to delete '}
-					<Text span fw={600} style={{ wordBreak: 'break-all' }}>
+					<Text span fw={600} style={{wordBreak: 'break-all'}}>
 						{pendingDelete?.key}
 					</Text>
 					? This cannot be undone.
@@ -320,8 +320,8 @@ export const ObjectBrowserPage = () => {
 					</Button>
 				</Group>
 			</Modal>
-			<Group align="center" mb="md" gap={24} style={{ flexWrap: 'nowrap' }}>
-				<Breadcrumbs style={{ rowGap: 8, flex: 1, minWidth: 0, paddingLeft: 8 }}>
+			<Group align="center" mb="md" gap={24} style={{flexWrap: 'nowrap'}}>
+				<Breadcrumbs style={{rowGap: 8, flex: 1, minWidth: 0, paddingLeft: 8}}>
 					{crumbs.map((crumb, i) => {
 						const isLast = i === crumbs.length - 1;
 						const isBucket = i === 0;
@@ -346,7 +346,7 @@ export const ObjectBrowserPage = () => {
 				</Breadcrumbs>
 
 				{!isMobile && (
-					<Group gap="xs" style={{ flexShrink: 0 }}>
+					<Group gap="xs" style={{flexShrink: 0}}>
 						<Button
 							leftSection={<IconUpload size={14} />}
 							variant="default"
@@ -386,7 +386,7 @@ export const ObjectBrowserPage = () => {
 				ref={fileInputRef}
 				type="file"
 				multiple
-				style={{ display: 'none' }}
+				style={{display: 'none'}}
 				onChange={(e) => {
 					if (e.target.files !== null && e.target.files.length > 0) {
 						void uploadFiles(e.target.files);
@@ -397,7 +397,7 @@ export const ObjectBrowserPage = () => {
 			<input
 				ref={folderInputRef}
 				type="file"
-				style={{ display: 'none' }}
+				style={{display: 'none'}}
 				onChange={(e) => {
 					if (e.target.files !== null && e.target.files.length > 0) {
 						void uploadFiles(e.target.files);
@@ -426,7 +426,7 @@ export const ObjectBrowserPage = () => {
 										<Anchor
 											component="button"
 											type="button"
-											style={{ textAlign: 'left' }}
+											style={{textAlign: 'left'}}
 											onClick={() => {
 												navigateTo(obj.key);
 											}}
@@ -437,7 +437,7 @@ export const ObjectBrowserPage = () => {
 										<Anchor
 											component={Link}
 											to={`/buckets/${encodeURIComponent(bucket)}/preview?key=${encodeURIComponent(obj.key)}`}
-											state={{ siblings: objects }}
+											state={{siblings: objects}}
 										>
 											{obj.key.slice(prefix.length)}
 										</Anchor>

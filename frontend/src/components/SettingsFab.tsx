@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import {useState} from 'react';
 import {
 	ActionIcon,
 	Popover,
@@ -7,8 +7,8 @@ import {
 	Text,
 	type MantineColorScheme,
 } from '@mantine/core';
-import { useMantineColorScheme } from '@mantine/core';
-import { IconSettings } from '@tabler/icons-react';
+import {useMantineColorScheme} from '@mantine/core';
+import {IconSettings} from '@tabler/icons-react';
 
 enum ColorScheme {
 	LIGHT = 'light',
@@ -17,14 +17,14 @@ enum ColorScheme {
 }
 
 const COLOR_SCHEME_OPTIONS = [
-	{ label: 'Light', value: ColorScheme.LIGHT },
-	{ label: 'Dark', value: ColorScheme.DARK },
-	{ label: 'Auto', value: ColorScheme.AUTO },
+	{label: 'Light', value: ColorScheme.LIGHT},
+	{label: 'Dark', value: ColorScheme.DARK},
+	{label: 'Auto', value: ColorScheme.AUTO},
 ];
 
 export const SettingsFab = () => {
 	const [opened, setOpened] = useState(false);
-	const { colorScheme, setColorScheme } = useMantineColorScheme();
+	const {colorScheme, setColorScheme} = useMantineColorScheme();
 
 	return (
 		<Popover opened={opened} onChange={setOpened} position="top-end" offset={8} withArrow>
@@ -34,7 +34,7 @@ export const SettingsFab = () => {
 					size="xl"
 					radius="xl"
 					variant="filled"
-					style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 200 }}
+					style={{position: 'fixed', bottom: 24, right: 24, zIndex: 200}}
 					aria-label="Settings"
 				>
 					<IconSettings size={20} />

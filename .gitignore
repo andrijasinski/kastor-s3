@@ -6,3 +6,6 @@ dist/
 *.local
 .DS_Store
 bun.lockb
+shared/**/*.js
+frontend/**/*.js
+api/**/*.js

@@ -8,8 +8,8 @@ import {
 	DeleteObjectsCommand,
 } from '@aws-sdk/client-s3';
 
-import type { Bucket, S3Object } from '@shared/types';
-import type { ObjectStream, Storage } from './storage';
+import type {Bucket, S3Object} from '@shared/types';
+import type {ObjectStream, Storage} from './storage';
 
 export class S3Storage implements Storage {
 	private readonly client: S3Client;
@@ -102,19 +102,19 @@ export class S3Storage implements Storage {
 	}
 
 	public async getObjectStream(bucket: string, key: string): Promise<ObjectStream> {
-		const result = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+		const result = await this.client.send(new GetObjectCommand({Bucket: bucket, Key: key}));
 		if (result.Body === undefined) {
 			throw new Error('Empty response body from S3');
 		}
 		return {
 			body: result.Body.transformToWebStream(),
-			...(result.ContentType !== undefined && { contentType: result.ContentType }),
-			...(result.ContentLength !== undefined && { contentLength: result.ContentLength }),
+			...(result.ContentType !== undefined && {contentType: result.ContentType}),
+			...(result.ContentLength !== undefined && {contentLength: result.ContentLength}),
 		};
 	}
 
 	public async deleteObject(bucket: string, key: string): Promise<void> {
-		await this.client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+		await this.client.send(new DeleteObjectCommand({Bucket: bucket, Key: key}));
 	}
 
 	public async deleteObjects(bucket: string, keys: string[]): Promise<void> {
@@ -124,7 +124,7 @@ export class S3Storage implements Storage {
 			await this.client.send(
 				new DeleteObjectsCommand({
 					Bucket: bucket,
-					Delete: { Objects: chunk.map((key) => ({ Key: key })), Quiet: true },
+					Delete: {Objects: chunk.map((key) => ({Key: key})), Quiet: true},
 				}),
 			);
 		}
@@ -141,7 +141,7 @@ export class S3Storage implements Storage {
 				Bucket: bucket,
 				Key: key,
 				Body: body,
-				...(contentType !== undefined && { ContentType: contentType }),
+				...(contentType !== undefined && {ContentType: contentType}),
 			}),
 		);
 	}

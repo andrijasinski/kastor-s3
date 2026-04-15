@@ -1,16 +1,16 @@
-import { describe, it, expect } from 'bun:test';
-import { createApp } from '../app';
-import { FakeStorage } from '../storage-fake';
-import type { S3Object } from '@shared/types';
+import {describe, it, expect} from 'bun:test';
+import {createApp} from '../app';
+import {FakeStorage} from '../storage-fake';
+import type {S3Object} from '@shared/types';
 
 const fakeObjects: S3Object[] = [
-	{ key: 'photos/cat.jpg', size: 100, lastModified: '', isPrefix: false },
-	{ key: 'photos/dog.jpg', size: 200, lastModified: '', isPrefix: false },
+	{key: 'photos/cat.jpg', size: 100, lastModified: '', isPrefix: false},
+	{key: 'photos/dog.jpg', size: 200, lastModified: '', isPrefix: false},
 ];
 
 describe('GET /api/buckets/:bucket/download-folder', () => {
 	it('returns 200 with zip content-type and correct filename', async () => {
-		const app = createApp(new FakeStorage([], {}, { testBucket: fakeObjects }));
+		const app = createApp(new FakeStorage([], {}, {testBucket: fakeObjects}));
 		const res = await app.request('/api/buckets/testBucket/download-folder?prefix=photos/');
 
 		expect(res.status).toBe(200);
@@ -21,7 +21,7 @@ describe('GET /api/buckets/:bucket/download-folder', () => {
 	});
 
 	it('uses bucket name as filename when prefix is empty', async () => {
-		const app = createApp(new FakeStorage([], {}, { testBucket: fakeObjects }));
+		const app = createApp(new FakeStorage([], {}, {testBucket: fakeObjects}));
 		const res = await app.request('/api/buckets/testBucket/download-folder');
 
 		expect(res.status).toBe(200);
@@ -31,7 +31,7 @@ describe('GET /api/buckets/:bucket/download-folder', () => {
 	});
 
 	it('response body is non-empty', async () => {
-		const app = createApp(new FakeStorage([], {}, { testBucket: fakeObjects }));
+		const app = createApp(new FakeStorage([], {}, {testBucket: fakeObjects}));
 		const res = await app.request('/api/buckets/testBucket/download-folder?prefix=photos/');
 
 		const bytes = await res.arrayBuffer();
@@ -39,7 +39,7 @@ describe('GET /api/buckets/:bucket/download-folder', () => {
 	});
 
 	it('returns 500 when storage fails', async () => {
-		const app = createApp(new FakeStorage([], { fail: true }));
+		const app = createApp(new FakeStorage([], {fail: true}));
 		const res = await app.request('/api/buckets/testBucket/download-folder?prefix=photos/');
 
 		expect(res.status).toBe(500);

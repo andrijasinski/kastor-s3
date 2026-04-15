@@ -1,8 +1,8 @@
-import { useParams, useSearchParams, useLocation, useNavigate, Link } from 'react-router-dom';
-import { Anchor, Breadcrumbs, Button, Container, Group, Stack, Text } from '@mantine/core';
-import { IconPhoto, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
-import type { S3Object } from '@shared/types';
-import { isImageFile } from '../utils/imageUtils';
+import {useParams, useSearchParams, useLocation, useNavigate, Link} from 'react-router-dom';
+import {Anchor, Breadcrumbs, Button, Container, Group, Stack, Text} from '@mantine/core';
+import {IconPhoto, IconChevronLeft, IconChevronRight} from '@tabler/icons-react';
+import type {S3Object} from '@shared/types';
+import {isImageFile} from '../utils/imageUtils';
 
 const objectUrl = (bucket: string, key: string): string =>
 	`/api/buckets/${encodeURIComponent(bucket)}/object?key=${encodeURIComponent(key)}`;
@@ -22,11 +22,11 @@ const formatDate = (isoString: string): string => {
 const buildBreadcrumbs = (bucket: string, key: string) => {
 	const parts = key.split('/').filter((p) => p.length > 0);
 	return [
-		{ label: bucket, href: `/buckets/${encodeURIComponent(bucket)}` },
+		{label: bucket, href: `/buckets/${encodeURIComponent(bucket)}`},
 		...parts.map((part, i) => {
 			const isLast = i === parts.length - 1;
 			if (isLast) {
-				return { label: part, href: null };
+				return {label: part, href: null};
 			}
 			const prefix = `${parts.slice(0, i + 1).join('/')}/`;
 			return {
@@ -38,14 +38,14 @@ const buildBreadcrumbs = (bucket: string, key: string) => {
 };
 
 export const ImagePreviewPage = () => {
-	const { bucket } = useParams<{ bucket: string }>();
+	const {bucket} = useParams<{bucket: string}>();
 	const [searchParams] = useSearchParams();
-	const { state } = useLocation();
+	const {state} = useLocation();
 	const key = searchParams.get('key') ?? '';
 
 	const navigate = useNavigate();
 
-	const siblings: S3Object[] = (state as { siblings?: S3Object[] } | null)?.siblings ?? [];
+	const siblings: S3Object[] = (state as {siblings?: S3Object[]} | null)?.siblings ?? [];
 	const currentIndex = siblings.findIndex((obj) => obj.key === key);
 	const currentFile = currentIndex !== -1 ? siblings[currentIndex] : undefined;
 	const hasSiblings = siblings.length > 0;
@@ -53,7 +53,7 @@ export const ImagePreviewPage = () => {
 	const goTo = (sibling: S3Object) => {
 		void navigate(
 			`/buckets/${encodeURIComponent(bucket!)}/preview?key=${encodeURIComponent(sibling.key)}`,
-			{ state: { siblings } },
+			{state: {siblings}},
 		);
 	};
 
@@ -64,7 +64,7 @@ export const ImagePreviewPage = () => {
 	return (
 		<>
 			<Container size="lg" pt="md" pb="xl">
-				<Breadcrumbs mb="xl" style={{ rowGap: 8, flex: 1, minWidth: 0, paddingLeft: 8 }}>
+				<Breadcrumbs mb="xl" style={{rowGap: 8, flex: 1, minWidth: 0, paddingLeft: 8}}>
 					{crumbs.map((crumb) =>
 						crumb.href !== null ? (
 							<Anchor key={crumb.label} component={Link} to={crumb.href}>
@@ -83,7 +83,7 @@ export const ImagePreviewPage = () => {
 						<img
 							src={objectUrl(bucket, key)}
 							alt={key.split('/').pop()}
-							style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }}
+							style={{maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain'}}
 						/>
 					) : (
 						<Stack align="center" gap="sm" py="xl">
@@ -113,7 +113,7 @@ export const ImagePreviewPage = () => {
 
 			<Button
 				variant="default"
-				style={{ position: 'fixed', left: 16, top: '50%', transform: 'translateY(-50%)' }}
+				style={{position: 'fixed', left: 16, top: '50%', transform: 'translateY(-50%)'}}
 				disabled={!hasSiblings || currentIndex <= 0}
 				onClick={() => {
 					const prev = siblings[currentIndex - 1];
@@ -126,7 +126,7 @@ export const ImagePreviewPage = () => {
 
 			<Button
 				variant="default"
-				style={{ position: 'fixed', right: 16, top: '50%', transform: 'translateY(-50%)' }}
+				style={{position: 'fixed', right: 16, top: '50%', transform: 'translateY(-50%)'}}
 				disabled={!hasSiblings || currentIndex >= siblings.length - 1}
 				onClick={() => {
 					const next = siblings[currentIndex + 1];

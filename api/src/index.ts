@@ -1,7 +1,7 @@
-import { S3Client } from '@aws-sdk/client-s3';
-import { FetchHttpHandler } from '@smithy/fetch-http-handler';
-import { S3Storage } from './storage-real';
-import { createApp } from './app';
+import {S3Client} from '@aws-sdk/client-s3';
+import {FetchHttpHandler} from '@smithy/fetch-http-handler';
+import {S3Storage} from './storage-real';
+import {createApp} from './app';
 
 const endpoint = process.env['S3_ENDPOINT'];
 const accessKeyId = process.env['S3_ACCESS_KEY_ID'];

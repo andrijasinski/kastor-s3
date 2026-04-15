@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'bun:test';
-import { createApp } from '../app';
-import { FakeStorage } from '../storage-fake';
+import {describe, it, expect} from 'bun:test';
+import {createApp} from '../app';
+import {FakeStorage} from '../storage-fake';
 
 describe('GET /api/buckets/:bucket/download', () => {
 	it('streams object with correct headers', async () => {
@@ -32,7 +32,7 @@ describe('GET /api/buckets/:bucket/download', () => {
 	});
 
 	it('returns 500 when storage fails', async () => {
-		const app = createApp(new FakeStorage([], { fail: true }));
+		const app = createApp(new FakeStorage([], {fail: true}));
 		const res = await app.request('/api/buckets/testBucket/download?key=photo.jpg');
 
 		expect(res.status).toBe(500);

@@ -1,15 +1,15 @@
-import { describe, it, expect } from 'bun:test';
-import { createApp } from '../app';
-import { FakeStorage } from '../storage-fake';
+import {describe, it, expect} from 'bun:test';
+import {createApp} from '../app';
+import {FakeStorage} from '../storage-fake';
 
 const makeRequest = (
 	bucket: string,
 	prefix: string,
-	files: Array<{ name: string; content: string; type?: string }>,
+	files: Array<{name: string; content: string; type?: string}>,
 ) => {
 	const formData = new FormData();
 	for (const f of files) {
-		formData.append('file', new File([f.content], f.name, { type: f.type ?? '' }));
+		formData.append('file', new File([f.content], f.name, {type: f.type ?? ''}));
 	}
 	return new Request(
 		`http://localhost/api/buckets/${bucket}/upload?prefix=${encodeURIComponent(prefix)}`,
@@ -25,7 +25,7 @@ describe('POST /api/buckets/:bucket/upload', () => {
 		const storage = new FakeStorage([], {}, {});
 		const app = createApp(storage);
 		const res = await app.fetch(
-			makeRequest('testBucket', '', [{ name: 'hello.txt', content: 'hello' }]),
+			makeRequest('testBucket', '', [{name: 'hello.txt', content: 'hello'}]),
 		);
 
 		expect(res.status).toBe(200);
@@ -35,9 +35,7 @@ describe('POST /api/buckets/:bucket/upload', () => {
 	it('prepends prefix to key', async () => {
 		const storage = new FakeStorage([], {}, {});
 		const app = createApp(storage);
-		await app.fetch(
-			makeRequest('testBucket', 'docs/', [{ name: 'readme.txt', content: 'hi' }]),
-		);
+		await app.fetch(makeRequest('testBucket', 'docs/', [{name: 'readme.txt', content: 'hi'}]));
 
 		expect(storage.getUploadedKeys('testBucket')).toEqual(['docs/readme.txt']);
 	});
@@ -47,8 +45,8 @@ describe('POST /api/buckets/:bucket/upload', () => {
 		const app = createApp(storage);
 		await app.fetch(
 			makeRequest('testBucket', 'uploads/', [
-				{ name: 'photos/2024/cat.jpg', content: 'img', type: 'image/jpeg' },
-				{ name: 'photos/2024/dog.jpg', content: 'img', type: 'image/jpeg' },
+				{name: 'photos/2024/cat.jpg', content: 'img', type: 'image/jpeg'},
+				{name: 'photos/2024/dog.jpg', content: 'img', type: 'image/jpeg'},
 			]),
 		);
 
@@ -72,9 +70,9 @@ describe('POST /api/buckets/:bucket/upload', () => {
 	});
 
 	it('returns 500 when storage fails', async () => {
-		const app = createApp(new FakeStorage([], { fail: true }));
+		const app = createApp(new FakeStorage([], {fail: true}));
 		const res = await app.fetch(
-			makeRequest('testBucket', '', [{ name: 'file.txt', content: 'x' }]),
+			makeRequest('testBucket', '', [{name: 'file.txt', content: 'x'}]),
 		);
 
 		expect(res.status).toBe(500);

@@ -1,4 +1,4 @@
-import type { Bucket, S3Object } from '@shared/types';
+import type {Bucket, S3Object} from '@shared/types';
 
 export interface ObjectStream {
 	body: ReadableStream<Uint8Array>;

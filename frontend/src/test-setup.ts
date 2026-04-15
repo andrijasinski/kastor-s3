@@ -1,5 +1,17 @@
 import '@testing-library/jest-dom';
 
+global.ResizeObserver = class ResizeObserver {
+	public observe() {
+		return undefined;
+	}
+	public unobserve() {
+		return undefined;
+	}
+	public disconnect() {
+		return undefined;
+	}
+};
+
 Object.defineProperty(window, 'matchMedia', {
 	writable: true,
 	value: (query: string) => ({

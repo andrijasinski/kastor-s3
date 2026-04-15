@@ -1,5 +1,5 @@
-import type { Bucket, S3Object } from '@shared/types';
-import type { ObjectStream, Storage } from './storage';
+import type {Bucket, S3Object} from '@shared/types';
+import type {ObjectStream, Storage} from './storage';
 
 interface FakeStorageOptions {
 	fail?: boolean;
@@ -104,6 +104,6 @@ export class FakeStorage implements Storage {
 				controller.close();
 			},
 		});
-		return { body, contentType: 'application/octet-stream', contentLength: content.byteLength };
+		return {body, contentType: 'application/octet-stream', contentLength: content.byteLength};
 	}
 }

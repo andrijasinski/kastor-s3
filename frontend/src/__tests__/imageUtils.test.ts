@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { isImageFile } from '../utils/imageUtils';
+import {describe, it, expect} from 'vitest';
+import {isImageFile} from '../utils/imageUtils';
 
 describe('isImageFile', () => {
 	it('returns true for jpg', () => {
