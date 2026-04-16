@@ -5,6 +5,7 @@ COPY tsconfig.base.json ./
 COPY shared/ ./shared/
 COPY frontend/package.json ./frontend/
 COPY frontend/tsconfig.json ./frontend/
+COPY frontend/tsconfig.build.json ./frontend/
 COPY frontend/tsconfig.node.json ./frontend/
 COPY frontend/vite.config.ts ./frontend/
 
