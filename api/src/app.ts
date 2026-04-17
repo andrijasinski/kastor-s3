@@ -1,6 +1,7 @@
 import {Hono} from 'hono';
 import {Zip, ZipPassThrough} from 'fflate';
 import type {Storage} from './storage';
+import {invalidate, invalidateWithAncestors} from './count-cache';
 
 function buildZipStream(
 	storage: Storage,
@@ -63,9 +64,11 @@ export function createApp(storage: Storage): Hono {
 	app.get('/api/buckets/:bucket/objects', async (c) => {
 		const {bucket} = c.req.param();
 		const prefix = c.req.query('prefix') ?? '';
+		const offset = parseInt(c.req.query('offset') ?? '0', 10);
+		const limit = parseInt(c.req.query('limit') ?? '100', 10);
 		try {
-			const objects = await storage.listObjects(bucket, prefix);
-			return c.json({objects});
+			const {objects, totalCount} = await storage.listObjects(bucket, prefix, offset, limit);
+			return c.json({objects, totalCount});
 		} catch (err) {
 			process.stderr.write(
 				`GET /api/buckets/${bucket}/objects error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
@@ -177,6 +180,7 @@ export function createApp(storage: Storage): Hono {
 				const contentType = file.type !== '' ? file.type : undefined;
 				await storage.putObject(bucket, key, body, contentType);
 			}
+			invalidate(bucket, prefix);
 			return c.json({ok: true});
 		} catch (err) {
 			process.stderr.write(
@@ -194,6 +198,9 @@ export function createApp(storage: Storage): Hono {
 		}
 		try {
 			await storage.deleteObject(bucket, key);
+			const lastSlash = key.lastIndexOf('/');
+			const parentPrefix = lastSlash === -1 ? '' : key.slice(0, lastSlash + 1);
+			invalidate(bucket, parentPrefix);
 			return c.json({ok: true});
 		} catch (err) {
 			process.stderr.write(
@@ -214,6 +221,7 @@ export function createApp(storage: Storage): Hono {
 			if (keys.length > 0) {
 				await storage.deleteObjects(bucket, keys);
 			}
+			invalidateWithAncestors(bucket, prefix);
 			return c.json({ok: true});
 		} catch (err) {
 			process.stderr.write(

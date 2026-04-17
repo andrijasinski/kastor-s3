@@ -6,9 +6,19 @@ export interface ObjectStream {
 	contentLength?: number;
 }
 
+export interface ListObjectsResult {
+	objects: S3Object[];
+	totalCount: number;
+}
+
 export interface Storage {
 	listBuckets(): Promise<Bucket[]>;
-	listObjects(bucket: string, prefix: string): Promise<S3Object[]>;
+	listObjects(
+		bucket: string,
+		prefix: string,
+		offset: number,
+		limit: number,
+	): Promise<ListObjectsResult>;
 	listAllObjects(bucket: string, prefix: string): Promise<string[]>;
 	getFolderSize(bucket: string, prefix: string): Promise<number>;
 	getObjectStream(bucket: string, key: string): Promise<ObjectStream>;

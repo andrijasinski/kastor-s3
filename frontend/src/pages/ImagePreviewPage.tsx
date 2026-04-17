@@ -8,14 +8,22 @@ const objectUrl = (bucket: string, key: string): string =>
 	`/api/buckets/${encodeURIComponent(bucket)}/object?key=${encodeURIComponent(key)}`;
 
 const formatSize = (bytes: number): string => {
-	if (bytes < 1024) return `${bytes} B`;
-	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-	if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+	if (bytes < 1024) {
+		return `${bytes} B`;
+	}
+	if (bytes < 1024 * 1024) {
+		return `${(bytes / 1024).toFixed(1)} KB`;
+	}
+	if (bytes < 1024 * 1024 * 1024) {
+		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+	}
 	return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 };
 
 const formatDate = (isoString: string): string => {
-	if (isoString === '') return '—';
+	if (isoString === '') {
+		return '—';
+	}
 	return new Date(isoString).toLocaleString();
 };
 
@@ -57,7 +65,9 @@ export const ImagePreviewPage = () => {
 		);
 	};
 
-	if (bucket === undefined) return null;
+	if (bucket === undefined) {
+		return null;
+	}
 
 	const crumbs = buildBreadcrumbs(bucket, key);
 
@@ -117,7 +127,9 @@ export const ImagePreviewPage = () => {
 				disabled={!hasSiblings || currentIndex <= 0}
 				onClick={() => {
 					const prev = siblings[currentIndex - 1];
-					if (prev !== undefined) goTo(prev);
+					if (prev !== undefined) {
+						goTo(prev);
+					}
 				}}
 				aria-label="Prev"
 			>
@@ -130,7 +142,9 @@ export const ImagePreviewPage = () => {
 				disabled={!hasSiblings || currentIndex >= siblings.length - 1}
 				onClick={() => {
 					const next = siblings[currentIndex + 1];
-					if (next !== undefined) goTo(next);
+					if (next !== undefined) {
+						goTo(next);
+					}
 				}}
 				aria-label="Next"
 			>

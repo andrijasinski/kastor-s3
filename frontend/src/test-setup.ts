@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom';
 
+window.HTMLElement.prototype.scrollIntoView = () => undefined;
+
 global.ResizeObserver = class ResizeObserver {
 	public observe() {
 		return undefined;

@@ -14,7 +14,9 @@ const mockObjects: S3Object[] = [
 ];
 
 const server = setupServer(
-	http.get('/api/buckets/:bucket/objects', () => HttpResponse.json({objects: mockObjects})),
+	http.get('/api/buckets/:bucket/objects', () =>
+		HttpResponse.json({objects: mockObjects, totalCount: mockObjects.length}),
+	),
 );
 
 beforeAll(() => {
@@ -150,6 +152,52 @@ describe('ObjectBrowserPage', () => {
 		renderPage('/buckets/my-bucket');
 		await waitFor(() => {
 			expect(screen.getByText(/Failed to fetch objects/i)).toBeInTheDocument();
+		});
+	});
+
+	it('shows pagination info when objects are loaded', async () => {
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => {
+			expect(screen.getByText(/Page 1 of 1/i)).toBeInTheDocument();
+			expect(screen.getByText(/1.+2\/2 items/i)).toBeInTheDocument();
+		});
+	});
+
+	it('pagination resets to page 1 when navigating to a new prefix', async () => {
+		let capturedUrl = '';
+		server.use(
+			http.get('/api/buckets/:bucket/objects', ({request}) => {
+				capturedUrl = request.url;
+				return HttpResponse.json({objects: mockObjects, totalCount: mockObjects.length});
+			}),
+		);
+
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket?page=3&pageSize=50');
+		await waitFor(() => screen.getByText('docs/'));
+		await user.click(screen.getByText('docs/'));
+		await waitFor(() => {
+			expect(capturedUrl).toContain('offset=0');
+		});
+	});
+
+	it('sends correct offset when page changes', async () => {
+		let capturedUrl = '';
+		server.use(
+			http.get('/api/buckets/:bucket/objects', ({request}) => {
+				capturedUrl = request.url;
+				return HttpResponse.json({objects: mockObjects, totalCount: 250});
+			}),
+		);
+
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+
+		const nextBtn = screen.getByRole('button', {name: /next page/i});
+		await user.click(nextBtn);
+		await waitFor(() => {
+			expect(capturedUrl).toContain('offset=100');
 		});
 	});
 });

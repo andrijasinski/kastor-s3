@@ -1,5 +1,5 @@
 import type {Bucket, S3Object} from '@shared/types';
-import type {ObjectStream, Storage} from './storage';
+import type {ListObjectsResult, ObjectStream, Storage} from './storage';
 
 interface FakeStorageOptions {
 	fail?: boolean;
@@ -29,11 +29,20 @@ export class FakeStorage implements Storage {
 		return this.buckets;
 	}
 
-	public async listObjects(bucket: string, _prefix: string): Promise<S3Object[]> {
+	public async listObjects(
+		bucket: string,
+		_prefix: string,
+		offset: number,
+		limit: number,
+	): Promise<ListObjectsResult> {
 		if (this.options.fail === true) {
 			throw new Error('FakeStorage: forced failure');
 		}
-		return this.objectsByBucket[bucket] ?? [];
+		const all = this.objectsByBucket[bucket] ?? [];
+		return {
+			objects: all.slice(offset, offset + limit),
+			totalCount: all.length,
+		};
 	}
 
 	public async listAllObjects(bucket: string, prefix: string): Promise<string[]> {
