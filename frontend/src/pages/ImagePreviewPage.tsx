@@ -3,47 +3,11 @@ import {Anchor, Breadcrumbs, Button, Container, Group, Stack, Text} from '@manti
 import {IconPhoto, IconChevronLeft, IconChevronRight} from '@tabler/icons-react';
 import type {S3Object} from '@shared/types';
 import {isImageFile} from '../utils/imageUtils';
+import {formatSize, formatDate} from '../utils/format';
+import {buildBreadcrumbSegments} from '../utils/breadcrumbs';
 
 const objectUrl = (bucket: string, key: string): string =>
 	`/api/buckets/${encodeURIComponent(bucket)}/object?key=${encodeURIComponent(key)}`;
-
-const formatSize = (bytes: number): string => {
-	if (bytes < 1024) {
-		return `${bytes} B`;
-	}
-	if (bytes < 1024 * 1024) {
-		return `${(bytes / 1024).toFixed(1)} KB`;
-	}
-	if (bytes < 1024 * 1024 * 1024) {
-		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-	}
-	return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-};
-
-const formatDate = (isoString: string): string => {
-	if (isoString === '') {
-		return '—';
-	}
-	return new Date(isoString).toLocaleString();
-};
-
-const buildBreadcrumbs = (bucket: string, key: string) => {
-	const parts = key.split('/').filter((p) => p.length > 0);
-	return [
-		{label: bucket, href: `/buckets/${encodeURIComponent(bucket)}`},
-		...parts.map((part, i) => {
-			const isLast = i === parts.length - 1;
-			if (isLast) {
-				return {label: part, href: null};
-			}
-			const prefix = `${parts.slice(0, i + 1).join('/')}/`;
-			return {
-				label: part,
-				href: `/buckets/${encodeURIComponent(bucket)}?prefix=${encodeURIComponent(prefix)}`,
-			};
-		}),
-	];
-};
 
 export const ImagePreviewPage = () => {
 	const {bucket} = useParams<{bucket: string}>();
@@ -53,7 +17,8 @@ export const ImagePreviewPage = () => {
 
 	const navigate = useNavigate();
 
-	const siblings: S3Object[] = (state as {siblings?: S3Object[]} | null)?.siblings ?? [];
+	const rawSiblings: S3Object[] = (state as {siblings?: S3Object[]} | null)?.siblings ?? [];
+	const siblings = rawSiblings.filter((obj) => !obj.isPrefix);
 	const currentIndex = siblings.findIndex((obj) => obj.key === key);
 	const currentFile = currentIndex !== -1 ? siblings[currentIndex] : undefined;
 	const hasSiblings = siblings.length > 0;
@@ -69,7 +34,17 @@ export const ImagePreviewPage = () => {
 		return null;
 	}
 
-	const crumbs = buildBreadcrumbs(bucket, key);
+	const segments = buildBreadcrumbSegments(key);
+	const crumbs = [
+		{label: bucket, href: `/buckets/${encodeURIComponent(bucket)}`},
+		...segments.map((seg) => ({
+			label: seg.label,
+			href:
+				seg.prefix !== null
+					? `/buckets/${encodeURIComponent(bucket)}?prefix=${encodeURIComponent(seg.prefix)}`
+					: null,
+		})),
+	];
 
 	return (
 		<>

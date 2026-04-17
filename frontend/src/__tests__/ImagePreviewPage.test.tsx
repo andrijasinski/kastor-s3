@@ -127,4 +127,48 @@ describe('ImagePreviewPage', () => {
 			expect(screen.getByText('beach.jpg')).toBeInTheDocument();
 		});
 	});
+
+	it('folder entries in siblings are excluded from Prev/Next navigation', async () => {
+		const user = userEvent.setup();
+		const siblingsWithFolder: S3Object[] = [
+			{
+				key: 'photos/beach.jpg',
+				size: 204800,
+				lastModified: '2024-06-01T12:00:00.000Z',
+				isPrefix: false,
+			},
+			{key: 'photos/sub/', size: 0, lastModified: '', isPrefix: true},
+			{
+				key: 'photos/report.pdf',
+				size: 51200,
+				lastModified: '2024-06-02T09:00:00.000Z',
+				isPrefix: false,
+			},
+		];
+		renderPage('photos/beach.jpg', {siblings: siblingsWithFolder});
+		await user.click(screen.getByRole('button', {name: /next/i}));
+		await waitFor(() => {
+			expect(screen.getByText('report.pdf')).toBeInTheDocument();
+		});
+	});
+
+	it('Next not disabled for first file when only intervening sibling is a folder', () => {
+		const siblingsWithFolder: S3Object[] = [
+			{
+				key: 'photos/beach.jpg',
+				size: 204800,
+				lastModified: '2024-06-01T12:00:00.000Z',
+				isPrefix: false,
+			},
+			{key: 'photos/sub/', size: 0, lastModified: '', isPrefix: true},
+			{
+				key: 'photos/report.pdf',
+				size: 51200,
+				lastModified: '2024-06-02T09:00:00.000Z',
+				isPrefix: false,
+			},
+		];
+		renderPage('photos/beach.jpg', {siblings: siblingsWithFolder});
+		expect(screen.getByRole('button', {name: /next/i})).not.toBeDisabled();
+	});
 });
