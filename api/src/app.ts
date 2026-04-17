@@ -2,6 +2,7 @@ import {Hono} from 'hono';
 import {Zip, ZipPassThrough} from 'fflate';
 import type {Storage} from './storage';
 import {invalidate, invalidateWithAncestors} from './count-cache';
+import {withErrorHandler} from './error-handler';
 
 function buildZipStream(
 	storage: Storage,
@@ -49,68 +50,54 @@ function buildZipStream(
 export function createApp(storage: Storage): Hono {
 	const app = new Hono();
 
-	app.get('/api/buckets', async (c) => {
-		try {
+	app.get(
+		'/api/buckets',
+		withErrorHandler(async (c) => {
 			const buckets = await storage.listBuckets();
 			return c.json({buckets});
-		} catch (err) {
-			process.stderr.write(
-				`GET /api/buckets error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
-			);
-			return c.json({error: 'Failed to list buckets'}, 500);
-		}
-	});
+		}),
+	);
 
-	app.get('/api/buckets/:bucket/objects', async (c) => {
-		const {bucket} = c.req.param();
-		const prefix = c.req.query('prefix') ?? '';
-		const offset = parseInt(c.req.query('offset') ?? '0', 10);
-		const limit = parseInt(c.req.query('limit') ?? '100', 10);
-		try {
+	app.get(
+		'/api/buckets/:bucket/objects',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const prefix = c.req.query('prefix') ?? '';
+			const offset = parseInt(c.req.query('offset') ?? '0', 10);
+			const limit = parseInt(c.req.query('limit') ?? '100', 10);
 			const {objects, totalCount} = await storage.listObjects(bucket, prefix, offset, limit);
 			return c.json({objects, totalCount});
-		} catch (err) {
-			process.stderr.write(
-				`GET /api/buckets/${bucket}/objects error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
-			);
-			return c.json({error: 'Failed to list objects'}, 500);
-		}
-	});
+		}),
+	);
 
-	app.get('/api/buckets/:bucket/objects-all', async (c) => {
-		const {bucket} = c.req.param();
-		const prefix = c.req.query('prefix') ?? '';
-		try {
+	app.get(
+		'/api/buckets/:bucket/objects-all',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const prefix = c.req.query('prefix') ?? '';
 			const keys = await storage.listAllObjects(bucket, prefix);
 			return c.json({keys});
-		} catch (err) {
-			process.stderr.write(
-				`GET /api/buckets/${bucket}/objects-all error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
-			);
-			return c.json({error: 'Failed to list objects'}, 500);
-		}
-	});
+		}),
+	);
 
-	app.get('/api/buckets/:bucket/folder-size', async (c) => {
-		const {bucket} = c.req.param();
-		const prefix = c.req.query('prefix') ?? '';
-		try {
+	app.get(
+		'/api/buckets/:bucket/folder-size',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const prefix = c.req.query('prefix') ?? '';
 			const size = await storage.getFolderSize(bucket, prefix);
 			return c.json({size});
-		} catch (err) {
-			const message = err instanceof Error ? err.message : 'Unknown error';
-			process.stderr.write(`GET /api/buckets/${bucket}/folder-size error: ${message}\n`);
-			return c.json({error: message}, 500);
-		}
-	});
+		}),
+	);
 
-	app.get('/api/buckets/:bucket/object', async (c) => {
-		const {bucket} = c.req.param();
-		const key = c.req.query('key');
-		if (key === undefined || key === '') {
-			return c.json({error: 'Missing key parameter'}, 400);
-		}
-		try {
+	app.get(
+		'/api/buckets/:bucket/object',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const key = c.req.query('key');
+			if (key === undefined || key === '') {
+				return c.json({error: 'Missing key parameter'}, 400);
+			}
 			const {body, contentType, contentLength} = await storage.getObjectStream(bucket, key);
 			const headers = new Headers();
 			if (contentType !== undefined) {
@@ -120,22 +107,18 @@ export function createApp(storage: Storage): Hono {
 				headers.set('Content-Length', contentLength.toString());
 			}
 			return new Response(body, {headers});
-		} catch (err) {
-			process.stderr.write(
-				`GET /api/buckets/${bucket}/object error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
-			);
-			return c.json({error: 'Failed to stream object'}, 500);
-		}
-	});
+		}),
+	);
 
-	app.get('/api/buckets/:bucket/download', async (c) => {
-		const {bucket} = c.req.param();
-		const key = c.req.query('key');
-		if (key === undefined || key === '') {
-			return c.json({error: 'Missing key parameter'}, 400);
-		}
-		const filename = key.split('/').pop() ?? key;
-		try {
+	app.get(
+		'/api/buckets/:bucket/download',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const key = c.req.query('key');
+			if (key === undefined || key === '') {
+				return c.json({error: 'Missing key parameter'}, 400);
+			}
+			const filename = key.split('/').pop() ?? key;
 			const {body, contentType, contentLength} = await storage.getObjectStream(bucket, key);
 			const headers = new Headers();
 			headers.set(
@@ -149,28 +132,24 @@ export function createApp(storage: Storage): Hono {
 				headers.set('Content-Length', contentLength.toString());
 			}
 			return new Response(body, {headers});
-		} catch (err) {
-			process.stderr.write(
-				`GET /api/buckets/${bucket}/download error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
-			);
-			return c.json({error: 'Failed to download object'}, 500);
-		}
-	});
+		}),
+	);
 
-	app.post('/api/buckets/:bucket/upload', async (c) => {
-		const {bucket} = c.req.param();
-		const prefix = c.req.query('prefix') ?? '';
-		let formData: FormData;
-		try {
-			formData = await c.req.formData();
-		} catch {
-			return c.json({error: 'Invalid form data'}, 400);
-		}
-		const files = formData.getAll('file');
-		if (files.length === 0) {
-			return c.json({error: 'No files provided'}, 400);
-		}
-		try {
+	app.post(
+		'/api/buckets/:bucket/upload',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const prefix = c.req.query('prefix') ?? '';
+			let formData: FormData;
+			try {
+				formData = await c.req.formData();
+			} catch {
+				return c.json({error: 'Invalid form data'}, 400);
+			}
+			const files = formData.getAll('file');
+			if (files.length === 0) {
+				return c.json({error: 'No files provided'}, 400);
+			}
 			for (const file of files) {
 				if (!(file instanceof File)) {
 					continue;
@@ -182,60 +161,48 @@ export function createApp(storage: Storage): Hono {
 			}
 			invalidate(bucket, prefix);
 			return c.json({ok: true});
-		} catch (err) {
-			process.stderr.write(
-				`POST /api/buckets/${bucket}/upload error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
-			);
-			return c.json({error: 'Upload failed'}, 500);
-		}
-	});
+		}),
+	);
 
-	app.delete('/api/buckets/:bucket/object', async (c) => {
-		const {bucket} = c.req.param();
-		const key = c.req.query('key');
-		if (key === undefined || key === '') {
-			return c.json({error: 'Missing key parameter'}, 400);
-		}
-		try {
+	app.delete(
+		'/api/buckets/:bucket/object',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const key = c.req.query('key');
+			if (key === undefined || key === '') {
+				return c.json({error: 'Missing key parameter'}, 400);
+			}
 			await storage.deleteObject(bucket, key);
 			const lastSlash = key.lastIndexOf('/');
 			const parentPrefix = lastSlash === -1 ? '' : key.slice(0, lastSlash + 1);
 			invalidate(bucket, parentPrefix);
 			return c.json({ok: true});
-		} catch (err) {
-			process.stderr.write(
-				`DELETE /api/buckets/${bucket}/object error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
-			);
-			return c.json({error: 'Failed to delete object'}, 500);
-		}
-	});
+		}),
+	);
 
-	app.delete('/api/buckets/:bucket/folder', async (c) => {
-		const {bucket} = c.req.param();
-		const prefix = c.req.query('prefix');
-		if (prefix === undefined || prefix === '') {
-			return c.json({error: 'Missing prefix parameter'}, 400);
-		}
-		try {
+	app.delete(
+		'/api/buckets/:bucket/folder',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const prefix = c.req.query('prefix');
+			if (prefix === undefined || prefix === '') {
+				return c.json({error: 'Missing prefix parameter'}, 400);
+			}
 			const keys = await storage.listAllObjects(bucket, prefix);
 			if (keys.length > 0) {
 				await storage.deleteObjects(bucket, keys);
 			}
 			invalidateWithAncestors(bucket, prefix);
 			return c.json({ok: true});
-		} catch (err) {
-			process.stderr.write(
-				`DELETE /api/buckets/${bucket}/folder error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
-			);
-			return c.json({error: 'Failed to delete folder'}, 500);
-		}
-	});
+		}),
+	);
 
-	app.get('/api/buckets/:bucket/download-folder', async (c) => {
-		const {bucket} = c.req.param();
-		const prefix = c.req.query('prefix') ?? '';
-		const folderName = prefix.split('/').filter(Boolean).pop() ?? bucket;
-		try {
+	app.get(
+		'/api/buckets/:bucket/download-folder',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const prefix = c.req.query('prefix') ?? '';
+			const folderName = prefix.split('/').filter(Boolean).pop() ?? bucket;
 			const keys = await storage.listAllObjects(bucket, prefix);
 			const zipStream = buildZipStream(storage, bucket, keys, prefix);
 			const headers = new Headers();
@@ -245,13 +212,8 @@ export function createApp(storage: Storage): Hono {
 				`attachment; filename*=UTF-8''${encodeURIComponent(folderName)}.zip`,
 			);
 			return new Response(zipStream, {headers});
-		} catch (err) {
-			process.stderr.write(
-				`GET /api/buckets/${bucket}/download-folder error: ${err instanceof Error ? err.message : 'unknown error'}\n`,
-			);
-			return c.json({error: 'Failed to create ZIP'}, 500);
-		}
-	});
+		}),
+	);
 
 	return app;
 }

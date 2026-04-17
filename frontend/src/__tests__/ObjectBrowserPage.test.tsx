@@ -5,8 +5,15 @@ import {MantineProvider} from '@mantine/core';
 import {Notifications} from '@mantine/notifications';
 import {http, HttpResponse} from 'msw';
 import {setupServer} from 'msw/node';
+import {vi} from 'vitest';
 import {ObjectBrowserPage} from '../pages/ObjectBrowserPage';
 import type {S3Object} from '@shared/types';
+
+vi.mock('streamsaver', () => ({
+	default: {
+		createWriteStream: vi.fn(() => new WritableStream()),
+	},
+}));
 
 const mockObjects: S3Object[] = [
 	{key: 'docs/', size: 0, lastModified: '', isPrefix: true},
@@ -178,6 +185,25 @@ describe('ObjectBrowserPage', () => {
 		await user.click(screen.getByText('docs/'));
 		await waitFor(() => {
 			expect(capturedUrl).toContain('offset=0');
+		});
+	});
+
+	it('clears stale objects when navigation to new prefix fails', async () => {
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => {
+			expect(screen.getByText('readme.txt')).toBeInTheDocument();
+		});
+
+		server.use(
+			http.get('/api/buckets/:bucket/objects', () => new HttpResponse(null, {status: 500})),
+		);
+
+		await user.click(screen.getByText('docs/'));
+
+		await waitFor(() => {
+			expect(screen.queryAllByText(/Failed to load objects/i).length).toBeGreaterThan(0);
+			expect(screen.queryByText('readme.txt')).not.toBeInTheDocument();
 		});
 	});
 

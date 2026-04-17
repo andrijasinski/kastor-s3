@@ -23,49 +23,12 @@ import {
 	IconTrash,
 	IconUpload,
 } from '@tabler/icons-react';
+import streamSaver from 'streamsaver';
 import type {S3Object} from '@shared/types';
 import {fetchFolderSize, fetchObjects} from '../api/client';
 import {PaginationControls} from '../components/Pagination';
-
-const triggerBlobDownload = (blob: Blob, filename: string): void => {
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = filename;
-	a.click();
-	URL.revokeObjectURL(url);
-};
-
-const buildBreadcrumbs = (bucket: string, prefix: string) => {
-	const parts = prefix.split('/').filter((p) => p.length > 0);
-	return [
-		{label: bucket, prefix: ''},
-		...parts.map((part, i) => ({
-			label: part,
-			prefix: `${parts.slice(0, i + 1).join('/')}/`,
-		})),
-	];
-};
-
-const formatSize = (bytes: number): string => {
-	if (bytes < 1024) {
-		return `${bytes} B`;
-	}
-	if (bytes < 1024 * 1024) {
-		return `${(bytes / 1024).toFixed(1)} KB`;
-	}
-	if (bytes < 1024 * 1024 * 1024) {
-		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-	}
-	return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-};
-
-const formatDate = (isoString: string): string => {
-	if (isoString === '') {
-		return '—';
-	}
-	return new Date(isoString).toLocaleString();
-};
+import {formatSize, formatDate} from '../utils/format';
+import {buildBreadcrumbSegments} from '../utils/breadcrumbs';
 
 const downloadUrl = (bucket: string, key: string): string =>
 	`/api/buckets/${encodeURIComponent(bucket)}/download?key=${encodeURIComponent(key)}`;
@@ -112,6 +75,7 @@ export const ObjectBrowserPage = () => {
 			return;
 		}
 		let cancelled = false;
+		setObjects([]);
 		setLoading(true);
 		const offset = (page - 1) * pageSize;
 		void fetchObjects(bucket, prefix, offset, pageSize)
@@ -173,7 +137,10 @@ export const ObjectBrowserPage = () => {
 		}
 	};
 
-	const crumbs = buildBreadcrumbs(bucket, prefix);
+	const crumbs: Array<{label: string; prefix: string | null}> = [
+		{label: bucket, prefix: ''},
+		...buildBreadcrumbSegments(prefix),
+	];
 
 	const navigateTo = (newPrefix: string) => {
 		setSearchParams((prev) => {
@@ -215,8 +182,8 @@ export const ObjectBrowserPage = () => {
 			if (!res.ok || res.body === null) {
 				throw new Error(`Download failed: ${res.status}`);
 			}
-			const blob = await res.blob();
-			triggerBlobDownload(blob, `${folderName}.zip`);
+			const fileStream = streamSaver.createWriteStream(`${folderName}.zip`);
+			await res.body.pipeTo(fileStream);
 		} catch (err) {
 			notifications.show({
 				title: 'Failed to download folder',
@@ -363,17 +330,17 @@ export const ObjectBrowserPage = () => {
 						const isBucket = i === 0;
 						if (isLast && !isBucket) {
 							return (
-								<Text key={crumb.prefix} span fw={500}>
+								<Text key={crumb.label} span fw={500}>
 									{crumb.label}
 								</Text>
 							);
 						}
 						return (
 							<Anchor
-								key={crumb.prefix}
+								key={crumb.prefix ?? crumb.label}
 								component="button"
 								type="button"
-								onClick={() => navigateTo(crumb.prefix)}
+								onClick={() => navigateTo(crumb.prefix ?? '')}
 							>
 								{crumb.label}
 							</Anchor>
