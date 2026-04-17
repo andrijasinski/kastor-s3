@@ -108,4 +108,11 @@ export default tseslint.config(
 	},
 	// Must be last: disables ESLint rules that would conflict with Prettier
 	prettier,
+	// Re-enable after prettier overrides
+	{
+		files: ['api/src/**/*.ts', 'frontend/src/**/*.{ts,tsx}', 'shared/**/*.ts'],
+		rules: {
+			curly: 'error',
+		},
+	},
 );

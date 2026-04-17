@@ -9,7 +9,8 @@ import {
 } from '@aws-sdk/client-s3';
 
 import type {Bucket, S3Object} from '@shared/types';
-import type {ObjectStream, Storage} from './storage';
+import type {ListObjectsResult, ObjectStream, Storage} from './storage';
+import {getCount, setCount} from './count-cache';
 
 export class S3Storage implements Storage {
 	private readonly client: S3Client;
@@ -26,35 +27,64 @@ export class S3Storage implements Storage {
 		}));
 	}
 
-	public async listObjects(bucket: string, prefix: string): Promise<S3Object[]> {
-		const result = await this.client.send(
-			new ListObjectsV2Command({
-				Bucket: bucket,
-				Prefix: prefix || undefined,
-				Delimiter: '/',
-			}),
-		);
+	public async listObjects(
+		bucket: string,
+		prefix: string,
+		offset: number,
+		limit: number,
+	): Promise<ListObjectsResult> {
+		const cachedCount = getCount(bucket, prefix);
 
-		const prefixes: S3Object[] = (result.CommonPrefixes ?? []).map((p) => ({
-			key: p.Prefix ?? '',
-			size: 0,
-			lastModified: '',
-			isPrefix: true,
-		}));
+		const prefixItems: S3Object[] = [];
+		const contentItems: S3Object[] = [];
+		let continuationToken: string | undefined;
 
-		const objects = (result.Contents ?? []).reduce<S3Object[]>((acc, obj) => {
-			if (obj.Key !== prefix) {
-				acc.push({
-					key: obj.Key ?? '',
-					size: obj.Size ?? 0,
-					lastModified: obj.LastModified?.toISOString() ?? '',
-					isPrefix: false,
-				});
+		do {
+			const result = await this.client.send(
+				new ListObjectsV2Command({
+					Bucket: bucket,
+					Prefix: prefix || undefined,
+					Delimiter: '/',
+					...(continuationToken !== undefined && {ContinuationToken: continuationToken}),
+				}),
+			);
+
+			for (const p of result.CommonPrefixes ?? []) {
+				prefixItems.push({key: p.Prefix ?? '', size: 0, lastModified: '', isPrefix: true});
 			}
-			return acc;
-		}, []);
 
-		return [...prefixes, ...objects];
+			for (const obj of result.Contents ?? []) {
+				if (obj.Key !== prefix) {
+					contentItems.push({
+						key: obj.Key ?? '',
+						size: obj.Size ?? 0,
+						lastModified: obj.LastModified?.toISOString() ?? '',
+						isPrefix: false,
+					});
+				}
+			}
+
+			continuationToken = result.NextContinuationToken;
+
+			if (
+				cachedCount !== undefined &&
+				prefixItems.length + contentItems.length >= offset + limit
+			) {
+				break;
+			}
+		} while (continuationToken !== undefined);
+
+		const all = [...prefixItems, ...contentItems];
+		const totalCount = cachedCount ?? all.length;
+
+		if (cachedCount === undefined) {
+			setCount(bucket, prefix, all.length);
+		}
+
+		return {
+			objects: all.slice(offset, offset + limit),
+			totalCount,
+		};
 	}
 
 	public async listAllObjects(bucket: string, prefix: string): Promise<string[]> {

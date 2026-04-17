@@ -16,7 +16,9 @@ const mockObjects: S3Object[] = [
 
 const server = setupServer(
 	http.get('/api/buckets', () => HttpResponse.json({buckets: mockBuckets})),
-	http.get('/api/buckets/:bucket/objects', () => HttpResponse.json({objects: mockObjects})),
+	http.get('/api/buckets/:bucket/objects', () =>
+		HttpResponse.json({objects: mockObjects, totalCount: mockObjects.length}),
+	),
 	http.get('/api/buckets/:bucket/folder-size', () => HttpResponse.json({size: 4096})),
 );
 
@@ -37,9 +39,35 @@ describe('fetchBuckets', () => {
 });
 
 describe('fetchObjects', () => {
-	it('returns object list on success', async () => {
+	it('returns objects and totalCount on success', async () => {
 		const result = await fetchObjects('my-bucket', '');
-		expect(result).toEqual(mockObjects);
+		expect(result).toEqual({objects: mockObjects, totalCount: 2});
+	});
+
+	it('sends offset and limit in URL', async () => {
+		let capturedUrl = '';
+		server.use(
+			http.get('/api/buckets/:bucket/objects', ({request}) => {
+				capturedUrl = request.url;
+				return HttpResponse.json({objects: [], totalCount: 0});
+			}),
+		);
+		await fetchObjects('my-bucket', '', 50, 100);
+		expect(capturedUrl).toContain('offset=50');
+		expect(capturedUrl).toContain('limit=100');
+	});
+
+	it('defaults to offset=0 limit=100', async () => {
+		let capturedUrl = '';
+		server.use(
+			http.get('/api/buckets/:bucket/objects', ({request}) => {
+				capturedUrl = request.url;
+				return HttpResponse.json({objects: [], totalCount: 0});
+			}),
+		);
+		await fetchObjects('my-bucket', '');
+		expect(capturedUrl).toContain('offset=0');
+		expect(capturedUrl).toContain('limit=100');
 	});
 
 	it('encodes bucket name in URL', async () => {
@@ -47,7 +75,7 @@ describe('fetchObjects', () => {
 		server.use(
 			http.get('/api/buckets/:bucket/objects', ({request}) => {
 				capturedUrl = request.url;
-				return HttpResponse.json({objects: []});
+				return HttpResponse.json({objects: [], totalCount: 0});
 			}),
 		);
 		await fetchObjects('my bucket', 'some/prefix/');

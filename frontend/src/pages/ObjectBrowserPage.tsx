@@ -25,6 +25,7 @@ import {
 } from '@tabler/icons-react';
 import type {S3Object} from '@shared/types';
 import {fetchFolderSize, fetchObjects} from '../api/client';
+import {PaginationControls} from '../components/Pagination';
 
 const triggerBlobDownload = (blob: Blob, filename: string): void => {
 	const url = URL.createObjectURL(blob);
@@ -80,8 +81,14 @@ export const ObjectBrowserPage = () => {
 	const {bucket} = useParams<{bucket: string}>();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const prefix = searchParams.get('prefix') ?? '';
+	const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+	const pageSize = (() => {
+		const ps = parseInt(searchParams.get('pageSize') ?? '100', 10);
+		return [50, 100, 200, 300].includes(ps) ? ps : 100;
+	})();
 
 	const [objects, setObjects] = useState<S3Object[]>([]);
+	const [totalCount, setTotalCount] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [downloadingFolder, setDownloadingFolder] = useState<string | null>(null);
 	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
@@ -106,10 +113,12 @@ export const ObjectBrowserPage = () => {
 		}
 		let cancelled = false;
 		setLoading(true);
-		void fetchObjects(bucket, prefix)
-			.then((data) => {
+		const offset = (page - 1) * pageSize;
+		void fetchObjects(bucket, prefix, offset, pageSize)
+			.then(({objects: data, totalCount: count}) => {
 				if (!cancelled) {
 					setObjects(data);
+					setTotalCount(count);
 					setLoading(false);
 				}
 			})
@@ -126,7 +135,7 @@ export const ObjectBrowserPage = () => {
 		return () => {
 			cancelled = true;
 		};
-	}, [bucket, prefix, refreshKey]);
+	}, [bucket, prefix, page, pageSize, refreshKey]);
 
 	if (bucket === undefined) {
 		return null;
@@ -167,7 +176,34 @@ export const ObjectBrowserPage = () => {
 	const crumbs = buildBreadcrumbs(bucket, prefix);
 
 	const navigateTo = (newPrefix: string) => {
-		setSearchParams(newPrefix !== '' ? {prefix: newPrefix} : {});
+		setSearchParams((prev) => {
+			const next = new URLSearchParams();
+			if (newPrefix !== '') {
+				next.set('prefix', newPrefix);
+			}
+			const ps = prev.get('pageSize');
+			if (ps !== null && ps !== '100') {
+				next.set('pageSize', ps);
+			}
+			return next;
+		});
+	};
+
+	const handlePageChange = (newPage: number) => {
+		setSearchParams((prev) => {
+			const next = new URLSearchParams(prev);
+			next.set('page', newPage.toString());
+			return next;
+		});
+	};
+
+	const handlePageSizeChange = (newSize: number) => {
+		setSearchParams((prev) => {
+			const next = new URLSearchParams(prev);
+			next.set('pageSize', newSize.toString());
+			next.delete('page');
+			return next;
+		});
 	};
 
 	const downloadFolder = async (folderPrefix: string): Promise<void> => {
@@ -205,9 +241,9 @@ export const ObjectBrowserPage = () => {
 			if (!res.ok) {
 				throw new Error(`Delete failed: ${res.status}`);
 			}
-			setObjects((objs) => objs.filter((obj) => obj.key !== pendingDelete.key));
 			invalidateAncestorSizes(pendingDelete.isFolder ? pendingDelete.key : prefix);
 			setPendingDelete(null);
+			setRefreshKey((k) => k + 1);
 		} catch (err) {
 			notifications.show({
 				title: 'Failed to delete',
@@ -549,6 +585,16 @@ export const ObjectBrowserPage = () => {
 						))}
 					</Table.Tbody>
 				</Table>
+			)}
+
+			{!loading && (
+				<PaginationControls
+					page={page}
+					totalCount={totalCount}
+					pageSize={pageSize}
+					onPageChange={handlePageChange}
+					onPageSizeChange={handlePageSizeChange}
+				/>
 			)}
 		</Container>
 	);
