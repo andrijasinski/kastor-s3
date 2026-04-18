@@ -32,5 +32,6 @@ const app = createApp(storage);
 
 Bun.serve({
 	port: 8080,
+	maxRequestBodySize: 20 * 1024 * 1024 * 1024, // 20 GB
 	fetch: (req: Request) => app.fetch(req),
 });
