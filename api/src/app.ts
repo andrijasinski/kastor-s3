@@ -135,30 +135,25 @@ export function createApp(storage: Storage): Hono {
 		}),
 	);
 
-	app.post(
+	app.put(
 		'/api/buckets/:bucket/upload',
 		withErrorHandler(async (c) => {
 			const {bucket} = c.req.param();
-			const prefix = c.req.query('prefix') ?? '';
-			let formData: FormData;
-			try {
-				formData = await c.req.formData();
-			} catch {
-				return c.json({error: 'Invalid form data'}, 400);
+			const key = c.req.query('key') ?? '';
+			if (key === '') {
+				return c.json({error: 'Missing key'}, 400);
 			}
-			const files = formData.getAll('file');
-			if (files.length === 0) {
-				return c.json({error: 'No files provided'}, 400);
-			}
-			for (const file of files) {
-				if (!(file instanceof File)) {
-					continue;
-				}
-				const key = prefix + file.name;
-				const body = new Uint8Array(await file.arrayBuffer());
-				const contentType = file.type !== '' ? file.type : undefined;
-				await storage.putObject(bucket, key, body, contentType);
-			}
+			const contentType = c.req.query('contentType') || undefined;
+			const body =
+				c.req.raw.body ??
+				new ReadableStream<Uint8Array>({
+					start(ctrl) {
+						ctrl.close();
+					},
+				});
+			await storage.putObject(bucket, key, body, contentType);
+			const lastSlash = key.lastIndexOf('/');
+			const prefix = lastSlash >= 0 ? key.slice(0, lastSlash + 1) : '';
 			invalidate(bucket, prefix);
 			return c.json({ok: true});
 		}),

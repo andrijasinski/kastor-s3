@@ -83,7 +83,7 @@ describe('GET /api/buckets/:bucket/objects', () => {
 
 		expect(res.status).toBe(200);
 		const body = (await res.json()) as {objects: S3Object[]; totalCount: number};
-		expect(body.objects).toEqual([objects[1], objects[2]]);
+		expect(body.objects).toEqual(objects.slice(1, 3));
 		expect(body.totalCount).toBe(5);
 	});
 
@@ -166,7 +166,7 @@ describe('S3Storage.listObjects pagination', () => {
 		const result = await storage.listObjects('bucket', 'docs/', 0, 10);
 
 		expect(result.objects).toHaveLength(1);
-		expect(result.objects[0].key).toBe('docs/file.txt');
+		expect(result.objects[0]?.key).toBe('docs/file.txt');
 
 		clearAll();
 	});
@@ -224,11 +224,9 @@ describe('Count cache invalidation via routes', () => {
 		setCount('testBucket', 'docs/', 5);
 
 		const app = createApp(new FakeStorage([], {}, {}));
-		const formData = new FormData();
-		formData.append('file', new File(['content'], 'test.txt'));
-		await app.request('/api/buckets/testBucket/upload?prefix=docs/', {
-			method: 'POST',
-			body: formData,
+		await app.request('/api/buckets/testBucket/upload?key=docs%2Ftest.txt', {
+			method: 'PUT',
+			body: 'content',
 		});
 
 		expect(getCount('testBucket', 'docs/')).toBeUndefined();

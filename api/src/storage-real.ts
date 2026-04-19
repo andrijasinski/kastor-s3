@@ -3,10 +3,10 @@ import {
 	ListBucketsCommand,
 	ListObjectsV2Command,
 	GetObjectCommand,
-	PutObjectCommand,
 	DeleteObjectCommand,
 	DeleteObjectsCommand,
 } from '@aws-sdk/client-s3';
+import {Upload} from '@aws-sdk/lib-storage';
 
 import type {Bucket, S3Object} from '@shared/types';
 import type {ListObjectsResult, ObjectStream, Storage} from './storage';
@@ -163,16 +163,18 @@ export class S3Storage implements Storage {
 	public async putObject(
 		bucket: string,
 		key: string,
-		body: Uint8Array,
+		body: ReadableStream<Uint8Array>,
 		contentType?: string,
 	): Promise<void> {
-		await this.client.send(
-			new PutObjectCommand({
+		const upload = new Upload({
+			client: this.client,
+			params: {
 				Bucket: bucket,
 				Key: key,
 				Body: body,
 				...(contentType !== undefined && {ContentType: contentType}),
-			}),
-		);
+			},
+		});
+		await upload.done();
 	}
 }
