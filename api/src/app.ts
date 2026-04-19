@@ -59,6 +59,15 @@ export function createApp(storage: Storage): Hono {
 	);
 
 	app.get(
+		'/api/buckets/:bucket/stats',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const stats = await storage.getBucketStats(bucket);
+			return c.json(stats);
+		}),
+	);
+
+	app.get(
 		'/api/buckets/:bucket/objects',
 		withErrorHandler(async (c) => {
 			const {bucket} = c.req.param();

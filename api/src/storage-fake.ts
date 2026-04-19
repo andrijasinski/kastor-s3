@@ -1,4 +1,4 @@
-import type {Bucket, S3Object} from '@shared/types';
+import type {Bucket, BucketStats, S3Object} from '@shared/types';
 import type {ListObjectsResult, ObjectStream, Storage} from './storage';
 
 interface FakeStorageOptions {
@@ -104,6 +104,17 @@ export class FakeStorage implements Storage {
 		}
 		const existing = this.deletedKeys.get(bucket) ?? [];
 		this.deletedKeys.set(bucket, [...existing, ...keys]);
+	}
+
+	public async getBucketStats(name: string): Promise<BucketStats> {
+		if (this.options.fail === true) {
+			throw new Error('FakeStorage: forced failure');
+		}
+		const objects = (this.objectsByBucket[name] ?? []).filter((obj) => !obj.isPrefix);
+		return {
+			objectCount: objects.length,
+			totalSize: objects.reduce((sum, obj) => sum + obj.size, 0),
+		};
 	}
 
 	public async getObjectStream(_bucket: string, _key: string): Promise<ObjectStream> {
