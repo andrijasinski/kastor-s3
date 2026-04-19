@@ -12,7 +12,7 @@ describe('buildBreadcrumbSegments', () => {
 
 	it('last segment has null prefix', () => {
 		const segments = buildBreadcrumbSegments('a/b/c');
-		expect(segments[segments.length - 1].prefix).toBeNull();
+		expect(segments.at(-1)?.prefix).toBeNull();
 	});
 
 	it('intermediate segments have correct prefix', () => {

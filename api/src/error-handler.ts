@@ -1,9 +1,7 @@
-import type {Context} from 'hono';
-
 export const withErrorHandler = (
-	handler: (c: Context) => Promise<Response>,
-): ((c: Context) => Promise<Response>) => {
-	return async (c: Context) => {
+	handler: (c: any) => Promise<Response>,
+): ((c: any) => Promise<Response>) => {
+	return async (c: any) => {
 		try {
 			return await handler(c);
 		} catch (err) {

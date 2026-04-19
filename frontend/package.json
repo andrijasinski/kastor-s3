@@ -5,7 +5,8 @@
 		"dev": "vite",
 		"build": "tsc -p tsconfig.build.json && vite build",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@mantine/core": "^7",

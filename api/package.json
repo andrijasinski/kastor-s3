@@ -4,10 +4,12 @@
 	"scripts": {
 		"dev": "bun run --watch src/index.ts",
 		"start": "bun run src/index.ts",
-		"test": "bun test"
+		"test": "bun test",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3",
+		"@aws-sdk/lib-storage": "^3",
 		"@smithy/fetch-http-handler": "^5",
 		"fflate": "^0.8.2",
 		"hono": "^4"

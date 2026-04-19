@@ -228,19 +228,22 @@ export const ObjectBrowserPage = () => {
 			for (const [i, file] of fileArray.entries()) {
 				const relativePath =
 					file.webkitRelativePath !== '' ? file.webkitRelativePath : file.name;
+				const key = prefix + relativePath;
 				setUploadProgress({
 					done: i,
 					total: fileArray.length,
 					filename: file.name,
 					fileProgress: 0,
 				});
-				const formData = new FormData();
-				formData.append('file', file, relativePath);
 				await new Promise<void>((resolve, reject) => {
 					const xhr = new XMLHttpRequest();
+					const params = new URLSearchParams({key});
+					if (file.type !== '') {
+						params.set('contentType', file.type);
+					}
 					xhr.open(
-						'POST',
-						`/api/buckets/${encodeURIComponent(bucket)}/upload?prefix=${encodeURIComponent(prefix)}`,
+						'PUT',
+						`/api/buckets/${encodeURIComponent(bucket)}/upload?${params.toString()}`,
 					);
 					xhr.upload.onprogress = (e) => {
 						if (e.lengthComputable) {
@@ -262,7 +265,7 @@ export const ObjectBrowserPage = () => {
 					xhr.onerror = () => {
 						reject(new Error('Network error'));
 					};
-					xhr.send(formData);
+					xhr.send(file);
 				});
 			}
 		} catch (err) {

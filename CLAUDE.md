@@ -2,4 +2,4 @@ Any endpoint or any business logic unit should have tests written for them in **
 
 ---
 
-After any changes to the code, run `bun run fix`.
+After any changes to the code, run `bun run feedback`.

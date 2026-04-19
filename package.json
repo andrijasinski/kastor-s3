@@ -10,7 +10,10 @@
 		"lint:fix": "eslint --fix .",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"fix": "bun run lint:fix && bun run format"
+		"typecheck": "bun run --cwd api typecheck && bun run --cwd frontend typecheck",
+		"test": "bun run --cwd api test && bun run --cwd frontend test",
+		"fix": "bun run lint:fix && bun run format",
+		"feedback": "bun run typecheck && bun run fix && bun run test"
 	},
 	"devDependencies": {
 		"eslint": "^9",

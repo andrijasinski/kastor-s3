@@ -66,11 +66,15 @@ export class FakeStorage implements Storage {
 	public async putObject(
 		bucket: string,
 		key: string,
-		_body: Uint8Array,
+		body: ReadableStream<Uint8Array>,
 		_contentType?: string,
 	): Promise<void> {
 		if (this.options.fail === true) {
 			throw new Error('FakeStorage: forced failure');
+		}
+		const reader = body.getReader();
+		while (!(await reader.read()).done) {
+			// drain
 		}
 		const keys = this.uploadedKeys.get(bucket) ?? [];
 		keys.push(key);
