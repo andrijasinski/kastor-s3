@@ -5,8 +5,8 @@ import {fetchBuckets, fetchFolderSize, fetchObjects} from '../api/client';
 import type {Bucket, S3Object} from '@shared/types';
 
 const mockBuckets: Bucket[] = [
-	{name: 'my-bucket', creationDate: '2024-01-01T00:00:00.000Z'},
-	{name: 'other-bucket', creationDate: '2024-02-01T00:00:00.000Z'},
+	{name: 'my-bucket', creationDate: '2024-01-01T00:00:00.000Z', region: 'us-east-1'},
+	{name: 'other-bucket', creationDate: '2024-02-01T00:00:00.000Z', region: 'eu-west-1'},
 ];
 
 const mockObjects: S3Object[] = [

@@ -8,7 +8,7 @@ import {
 } from '@aws-sdk/client-s3';
 import {Upload} from '@aws-sdk/lib-storage';
 
-import type {Bucket, S3Object} from '@shared/types';
+import type {Bucket, BucketStats, S3Object} from '@shared/types';
 import type {ListObjectsResult, ObjectStream, Storage} from './storage';
 import {getCount, setCount} from './count-cache';
 
@@ -24,7 +24,28 @@ export class S3Storage implements Storage {
 		return (result.Buckets ?? []).map((b) => ({
 			name: b.Name ?? '',
 			creationDate: b.CreationDate?.toISOString() ?? '',
+			region: b.BucketRegion ?? '',
 		}));
+	}
+
+	public async getBucketStats(name: string): Promise<BucketStats> {
+		let objectCount = 0;
+		let totalSize = 0;
+		let continuationToken: string | undefined;
+		do {
+			const result = await this.client.send(
+				new ListObjectsV2Command({
+					Bucket: name,
+					...(continuationToken !== undefined && {ContinuationToken: continuationToken}),
+				}),
+			);
+			for (const obj of result.Contents ?? []) {
+				objectCount++;
+				totalSize += obj.Size ?? 0;
+			}
+			continuationToken = result.NextContinuationToken;
+		} while (continuationToken !== undefined);
+		return {objectCount, totalSize};
 	}
 
 	public async listObjects(

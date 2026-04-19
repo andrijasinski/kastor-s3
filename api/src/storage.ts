@@ -1,4 +1,4 @@
-import type {Bucket, S3Object} from '@shared/types';
+import type {Bucket, BucketStats, S3Object} from '@shared/types';
 
 export interface ObjectStream {
 	body: ReadableStream<Uint8Array>;
@@ -13,6 +13,7 @@ export interface ListObjectsResult {
 
 export interface Storage {
 	listBuckets(): Promise<Bucket[]>;
+	getBucketStats(name: string): Promise<BucketStats>;
 	listObjects(
 		bucket: string,
 		prefix: string,

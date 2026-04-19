@@ -1,4 +1,4 @@
-import type {Bucket, S3Object} from '@shared/types';
+import type {Bucket, BucketStats, S3Object} from '@shared/types';
 
 export interface FetchObjectsResult {
 	objects: S3Object[];
@@ -33,6 +33,14 @@ export async function fetchObjects(
 	}
 	const data = (await res.json()) as {objects: S3Object[]; totalCount: number};
 	return {objects: data.objects, totalCount: data.totalCount};
+}
+
+export async function fetchBucketStats(bucket: string): Promise<BucketStats> {
+	const res = await fetch(`/api/buckets/${encodeURIComponent(bucket)}/stats`);
+	if (!res.ok) {
+		throw new Error(`Failed to fetch stats for ${bucket}: ${res.status}`);
+	}
+	return (await res.json()) as BucketStats;
 }
 
 export async function fetchFolderSize(bucket: string, prefix: string): Promise<number> {
