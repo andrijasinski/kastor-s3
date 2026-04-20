@@ -3,6 +3,7 @@ import {Zip, ZipPassThrough} from 'fflate';
 import type {Storage} from './storage';
 import {invalidate, invalidateWithAncestors} from './count-cache';
 import {withErrorHandler} from './error-handler';
+import {PartialDeleteError} from './errors';
 
 function buildZipStream(
 	storage: Storage,
@@ -194,7 +195,18 @@ export function createApp(storage: Storage): Hono {
 			}
 			const keys = await storage.listAllObjects(bucket, prefix);
 			if (keys.length > 0) {
-				await storage.deleteObjects(bucket, keys);
+				try {
+					await storage.deleteObjects(bucket, keys);
+				} catch (err) {
+					if (err instanceof PartialDeleteError) {
+						invalidateWithAncestors(bucket, prefix);
+						return c.json(
+							{error: 'Some objects failed to delete', failedKeys: err.failures},
+							207,
+						);
+					}
+					throw err;
+				}
 			}
 			invalidateWithAncestors(bucket, prefix);
 			return c.json({ok: true});

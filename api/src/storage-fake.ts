@@ -1,8 +1,10 @@
 import type {Bucket, BucketStats, S3Object} from '@shared/types';
 import type {ListObjectsResult, ObjectStream, Storage} from './storage';
+import {PartialDeleteError} from './errors';
 
 interface FakeStorageOptions {
 	fail?: boolean;
+	failKeys?: Set<string>;
 }
 
 export class FakeStorage implements Storage {
@@ -102,8 +104,15 @@ export class FakeStorage implements Storage {
 		if (this.options.fail === true) {
 			throw new Error('FakeStorage: forced failure');
 		}
+		const failures = keys
+			.filter((k) => this.options.failKeys?.has(k))
+			.map((k) => ({key: k, code: 'AccessDenied', message: 'Access Denied'}));
+		const succeeded = keys.filter((k) => !this.options.failKeys?.has(k));
 		const existing = this.deletedKeys.get(bucket) ?? [];
-		this.deletedKeys.set(bucket, [...existing, ...keys]);
+		this.deletedKeys.set(bucket, [...existing, ...succeeded]);
+		if (failures.length > 0) {
+			throw new PartialDeleteError(failures);
+		}
 	}
 
 	public async getBucketStats(name: string): Promise<BucketStats> {

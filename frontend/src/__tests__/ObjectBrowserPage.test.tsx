@@ -162,6 +162,60 @@ describe('ObjectBrowserPage', () => {
 		});
 	});
 
+	it('closes modal and shows orange toast on 207 partial delete failure', async () => {
+		server.use(
+			http.delete('/api/buckets/:bucket/folder', () =>
+				HttpResponse.json(
+					{
+						error: 'Some objects failed to delete',
+						failedKeys: [
+							{key: 'docs/a.txt', code: 'AccessDenied', message: 'Access Denied'},
+						],
+					},
+					{status: 207},
+				),
+			),
+		);
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('docs/'));
+
+		const deleteBtn = await screen.findByRole('button', {name: /delete docs\//i});
+		await user.click(deleteBtn);
+
+		const confirmBtn = await screen.findByRole('button', {name: /^delete$/i});
+		await user.click(confirmBtn);
+
+		await waitFor(() => {
+			expect(screen.getByText('Partial delete failure')).toBeInTheDocument();
+			expect(
+				screen.getByText(/1 file\(s\) failed to delete: docs\/a\.txt/i),
+			).toBeInTheDocument();
+			expect(screen.queryByRole('button', {name: /^delete$/i})).not.toBeInTheDocument();
+		});
+	});
+
+	it('shows total failure toast on 500 delete response', async () => {
+		server.use(
+			http.delete('/api/buckets/:bucket/folder', () =>
+				HttpResponse.json({error: 'Internal error'}, {status: 500}),
+			),
+		);
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('docs/'));
+
+		const deleteBtn = await screen.findByRole('button', {name: /delete docs\//i});
+		await user.click(deleteBtn);
+
+		const confirmBtn = await screen.findByRole('button', {name: /^delete$/i});
+		await user.click(confirmBtn);
+
+		await waitFor(() => {
+			expect(screen.getByText('Failed to delete')).toBeInTheDocument();
+		});
+	});
+
 	it('shows pagination info when objects are loaded', async () => {
 		renderPage('/buckets/my-bucket');
 		await waitFor(() => {

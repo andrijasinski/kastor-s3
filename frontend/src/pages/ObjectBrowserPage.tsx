@@ -205,6 +205,26 @@ export const ObjectBrowserPage = () => {
 				? `/api/buckets/${encodeURIComponent(bucket)}/folder?prefix=${encodeURIComponent(pendingDelete.key)}`
 				: `/api/buckets/${encodeURIComponent(bucket)}/object?key=${encodeURIComponent(pendingDelete.key)}`;
 			const res = await fetch(url, {method: 'DELETE'});
+			if (res.status === 207) {
+				const body = (await res.json()) as {
+					error: string;
+					failedKeys: Array<{key: string; code: string; message: string}>;
+				};
+				const count = body.failedKeys.length;
+				const names = body.failedKeys
+					.slice(0, 3)
+					.map((f) => f.key)
+					.join(', ');
+				const suffix = count > 3 ? ` and ${count - 3} more` : '';
+				notifications.show({
+					title: 'Partial delete failure',
+					message: `${count} file(s) failed to delete: ${names}${suffix}`,
+					color: 'orange',
+				});
+				setPendingDelete(null);
+				setRefreshKey((k) => k + 1);
+				return;
+			}
 			if (!res.ok) {
 				throw new Error(`Delete failed: ${res.status}`);
 			}

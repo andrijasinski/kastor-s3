@@ -11,6 +11,7 @@ import {Upload} from '@aws-sdk/lib-storage';
 import type {Bucket, BucketStats, S3Object} from '@shared/types';
 import type {ListObjectsResult, ObjectStream, Storage} from './storage';
 import {getCount, setCount} from './count-cache';
+import {PartialDeleteError, type DeleteFailure} from './errors';
 
 export class S3Storage implements Storage {
 	private readonly client: S3Client;
@@ -170,14 +171,25 @@ export class S3Storage implements Storage {
 
 	public async deleteObjects(bucket: string, keys: string[]): Promise<void> {
 		const chunkSize = 1000;
+		const failures: DeleteFailure[] = [];
 		for (let i = 0; i < keys.length; i += chunkSize) {
 			const chunk = keys.slice(i, i + chunkSize);
-			await this.client.send(
+			const result = await this.client.send(
 				new DeleteObjectsCommand({
 					Bucket: bucket,
 					Delete: {Objects: chunk.map((key) => ({Key: key})), Quiet: true},
 				}),
 			);
+			for (const err of result.Errors ?? []) {
+				failures.push({
+					key: err.Key ?? '',
+					code: err.Code ?? 'Unknown',
+					message: err.Message ?? 'Unknown error',
+				});
+			}
+		}
+		if (failures.length > 0) {
+			throw new PartialDeleteError(failures);
 		}
 	}
 
