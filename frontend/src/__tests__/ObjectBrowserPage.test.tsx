@@ -280,4 +280,32 @@ describe('ObjectBrowserPage', () => {
 			expect(capturedUrl).toContain('offset=100');
 		});
 	});
+
+	it('default view is table — gallery tiles not rendered', async () => {
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+		expect(screen.queryByRole('button', {name: /open folder/i})).not.toBeInTheDocument();
+	});
+
+	it('toggle to gallery renders gallery tiles and hides table', async () => {
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+		await user.click(screen.getByRole('button', {name: /gallery view/i}));
+		expect(screen.getByRole('button', {name: /open folder docs\//i})).toBeInTheDocument();
+		expect(screen.queryByRole('columnheader', {name: /name/i})).not.toBeInTheDocument();
+	});
+
+	it('view resets to table when prefix changes', async () => {
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('docs/'));
+		await user.click(screen.getByRole('button', {name: /gallery view/i}));
+		expect(screen.getByRole('button', {name: /open folder docs\//i})).toBeInTheDocument();
+		await user.click(screen.getByRole('button', {name: /open folder docs\//i}));
+		await waitFor(() => {
+			expect(screen.queryByRole('button', {name: /open folder/i})).not.toBeInTheDocument();
+			expect(screen.getByRole('columnheader', {name: /name/i})).toBeInTheDocument();
+		});
+	});
 });
