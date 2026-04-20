@@ -13,6 +13,7 @@ import {
 	Stack,
 	Table,
 	Text,
+	Tooltip,
 } from '@mantine/core';
 import {useMediaQuery} from '@mantine/hooks';
 import {notifications} from '@mantine/notifications';
@@ -20,6 +21,8 @@ import {
 	IconCalculator,
 	IconDownload,
 	IconFolderUp,
+	IconLayoutGrid,
+	IconList,
 	IconTrash,
 	IconUpload,
 } from '@tabler/icons-react';
@@ -33,6 +36,7 @@ import {
 	fetchObjects,
 	uploadPart,
 } from '../api/client';
+import {GalleryView} from '../components/GalleryView';
 import {PaginationControls} from '../components/Pagination';
 import {formatSize, formatDate} from '../utils/format';
 import {buildBreadcrumbSegments} from '../utils/breadcrumbs';
@@ -69,6 +73,7 @@ export const ObjectBrowserPage = () => {
 	const [deleting, setDeleting] = useState(false);
 	const [folderSizes, setFolderSizes] = useState<Map<string, number>>(new Map());
 	const [calculatingFolders, setCalculatingFolders] = useState<Set<string>>(new Set());
+	const [viewMode, setViewMode] = useState<'table' | 'gallery'>('table');
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const folderInputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +81,10 @@ export const ObjectBrowserPage = () => {
 	useEffect(() => {
 		folderInputRef.current?.setAttribute('webkitdirectory', '');
 	}, []);
+
+	useEffect(() => {
+		setViewMode('table');
+	}, [prefix]);
 
 	useEffect(() => {
 		if (bucket === undefined) {
@@ -360,58 +369,117 @@ export const ObjectBrowserPage = () => {
 					</Button>
 				</Group>
 			</Modal>
-			<Group align="center" mb="md" gap={24} style={{flexWrap: 'nowrap'}}>
-				<Breadcrumbs style={{rowGap: 8, flex: 1, minWidth: 0, paddingLeft: 8}}>
-					{crumbs.map((crumb, i) => {
-						const isLast = i === crumbs.length - 1;
-						const isBucket = i === 0;
-						if (isLast && !isBucket) {
+			<Stack gap="xs" mb="md">
+				<Group align="center" gap={24} style={{flexWrap: 'nowrap'}}>
+					<Breadcrumbs style={{rowGap: 8, flex: 1, minWidth: 0, paddingLeft: 8}}>
+						{crumbs.map((crumb, i) => {
+							const isLast = i === crumbs.length - 1;
+							const isBucket = i === 0;
+							if (isLast && !isBucket) {
+								return (
+									<Text key={crumb.label} span fw={500}>
+										{crumb.label}
+									</Text>
+								);
+							}
 							return (
-								<Text key={crumb.label} span fw={500}>
+								<Anchor
+									key={crumb.prefix ?? crumb.label}
+									component="button"
+									type="button"
+									onClick={() => navigateTo(crumb.prefix ?? '')}
+								>
 									{crumb.label}
-								</Text>
+								</Anchor>
 							);
-						}
-						return (
-							<Anchor
-								key={crumb.prefix ?? crumb.label}
-								component="button"
-								type="button"
-								onClick={() => navigateTo(crumb.prefix ?? '')}
-							>
-								{crumb.label}
-							</Anchor>
-						);
-					})}
-				</Breadcrumbs>
+						})}
+					</Breadcrumbs>
 
-				{!isMobile && (
-					<Group gap="xs" style={{flexShrink: 0}}>
-						<Button
-							leftSection={<IconUpload size={14} />}
-							variant="default"
-							size="sm"
-							disabled={uploading}
-							onClick={() => {
-								fileInputRef.current?.click();
-							}}
-						>
-							Upload files
-						</Button>
-						<Button
-							leftSection={<IconFolderUp size={14} />}
-							variant="default"
-							size="sm"
-							disabled={uploading}
-							onClick={() => {
-								folderInputRef.current?.click();
-							}}
-						>
-							Upload folder
-						</Button>
+					{!isMobile && (
+						<Group gap="xs" style={{flexShrink: 0}}>
+							<Button
+								leftSection={<IconUpload size={14} />}
+								variant="default"
+								size="sm"
+								disabled={uploading}
+								onClick={() => {
+									fileInputRef.current?.click();
+								}}
+							>
+								Upload files
+							</Button>
+							<Button
+								leftSection={<IconFolderUp size={14} />}
+								variant="default"
+								size="sm"
+								disabled={uploading}
+								onClick={() => {
+									folderInputRef.current?.click();
+								}}
+							>
+								Upload folder
+							</Button>
+							<Tooltip label="Table view">
+								<ActionIcon
+									variant={viewMode === 'table' ? 'filled' : 'subtle'}
+									color={viewMode === 'table' ? 'blue' : 'gray'}
+									size="sm"
+									aria-label="Table view"
+									onClick={() => {
+										setViewMode('table');
+									}}
+								>
+									<IconList size={14} />
+								</ActionIcon>
+							</Tooltip>
+							<Tooltip label="Gallery view">
+								<ActionIcon
+									variant={viewMode === 'gallery' ? 'filled' : 'subtle'}
+									color={viewMode === 'gallery' ? 'blue' : 'gray'}
+									size="sm"
+									aria-label="Gallery view"
+									onClick={() => {
+										setViewMode('gallery');
+									}}
+								>
+									<IconLayoutGrid size={14} />
+								</ActionIcon>
+							</Tooltip>
+						</Group>
+					)}
+				</Group>
+
+				{isMobile && (
+					<Group gap="xs" justify="flex-end">
+						<Tooltip label="Table view">
+							<ActionIcon
+								variant={viewMode === 'table' ? 'filled' : 'subtle'}
+								color={viewMode === 'table' ? 'blue' : 'gray'}
+								size="sm"
+								aria-label="Table view"
+								onClick={() => {
+									setViewMode('table');
+								}}
+							>
+								<IconList size={14} />
+							</ActionIcon>
+						</Tooltip>
+						<Tooltip label="Gallery view">
+							<ActionIcon
+								variant={viewMode === 'gallery' ? 'filled' : 'subtle'}
+								color={viewMode === 'gallery' ? 'blue' : 'gray'}
+								size="sm"
+								aria-label="Gallery view"
+								onClick={() => {
+									setViewMode('gallery');
+								}}
+							>
+								<IconLayoutGrid size={14} />
+							</ActionIcon>
+						</Tooltip>
 					</Group>
 				)}
-			</Group>
+			</Stack>
 
 			{uploadProgress !== null && (
 				<Stack gap="xs" mb="md">
@@ -448,7 +516,16 @@ export const ObjectBrowserPage = () => {
 
 			{loading && <Text>Loading…</Text>}
 
-			{!loading && (
+			{!loading && viewMode === 'gallery' && (
+				<GalleryView
+					objects={objects}
+					bucket={bucket}
+					prefix={prefix}
+					onNavigate={navigateTo}
+				/>
+			)}
+
+			{!loading && viewMode === 'table' && (
 				<Table highlightOnHover>
 					<Table.Thead>
 						<Table.Tr>
