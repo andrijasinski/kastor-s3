@@ -25,7 +25,14 @@ import {
 } from '@tabler/icons-react';
 import streamSaver from 'streamsaver';
 import type {S3Object} from '@shared/types';
-import {fetchFolderSize, fetchObjects} from '../api/client';
+import {
+	abortMultipartUpload,
+	completeMultipartUpload,
+	createMultipartUpload,
+	fetchFolderSize,
+	fetchObjects,
+	uploadPart,
+} from '../api/client';
 import {PaginationControls} from '../components/Pagination';
 import {formatSize, formatDate} from '../utils/format';
 import {buildBreadcrumbSegments} from '../utils/breadcrumbs';
@@ -242,6 +249,8 @@ export const ObjectBrowserPage = () => {
 		}
 	};
 
+	const CHUNK_SIZE = 8 * 1024 * 1024;
+
 	const uploadFiles = async (files: FileList): Promise<void> => {
 		const fileArray = Array.from(files);
 		try {
@@ -249,44 +258,49 @@ export const ObjectBrowserPage = () => {
 				const relativePath =
 					file.webkitRelativePath !== '' ? file.webkitRelativePath : file.name;
 				const key = prefix + relativePath;
+				const contentType = file.type !== '' ? file.type : undefined;
+				const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+
 				setUploadProgress({
 					done: i,
 					total: fileArray.length,
 					filename: file.name,
 					fileProgress: 0,
 				});
-				await new Promise<void>((resolve, reject) => {
-					const xhr = new XMLHttpRequest();
-					const params = new URLSearchParams({key});
-					if (file.type !== '') {
-						params.set('contentType', file.type);
+
+				const uploadId = await createMultipartUpload(bucket, key, contentType);
+				let bytesUploaded = 0;
+				const parts: Array<{partNumber: number; etag: string}> = [];
+
+				try {
+					for (let p = 0; p < totalChunks; p++) {
+						const start = p * CHUNK_SIZE;
+						const chunk = file.slice(start, start + CHUNK_SIZE);
+						const etag = await uploadPart(
+							bucket,
+							key,
+							uploadId,
+							p + 1,
+							chunk,
+							(loaded) => {
+								setUploadProgress({
+									done: i,
+									total: fileArray.length,
+									filename: file.name,
+									fileProgress: Math.round(
+										((bytesUploaded + loaded) / Math.max(file.size, 1)) * 100,
+									),
+								});
+							},
+						);
+						bytesUploaded += chunk.size;
+						parts.push({partNumber: p + 1, etag});
 					}
-					xhr.open(
-						'PUT',
-						`/api/buckets/${encodeURIComponent(bucket)}/upload?${params.toString()}`,
-					);
-					xhr.upload.onprogress = (e) => {
-						if (e.lengthComputable) {
-							setUploadProgress({
-								done: i,
-								total: fileArray.length,
-								filename: file.name,
-								fileProgress: Math.round((e.loaded / e.total) * 100),
-							});
-						}
-					};
-					xhr.onload = () => {
-						if (xhr.status >= 200 && xhr.status < 300) {
-							resolve();
-						} else {
-							reject(new Error(`Upload failed: ${xhr.status}`));
-						}
-					};
-					xhr.onerror = () => {
-						reject(new Error('Network error'));
-					};
-					xhr.send(file);
-				});
+					await completeMultipartUpload(bucket, key, uploadId, parts);
+				} catch (err) {
+					await abortMultipartUpload(bucket, key, uploadId).catch(() => {});
+					throw err;
+				}
 			}
 		} catch (err) {
 			notifications.show({

@@ -5,6 +5,10 @@ import {
 	GetObjectCommand,
 	DeleteObjectCommand,
 	DeleteObjectsCommand,
+	CreateMultipartUploadCommand,
+	UploadPartCommand,
+	CompleteMultipartUploadCommand,
+	AbortMultipartUploadCommand,
 } from '@aws-sdk/client-s3';
 import {Upload} from '@aws-sdk/lib-storage';
 
@@ -209,5 +213,92 @@ export class S3Storage implements Storage {
 			},
 		});
 		await upload.done();
+	}
+
+	public async createMultipartUpload(
+		bucket: string,
+		key: string,
+		contentType?: string,
+	): Promise<string> {
+		const result = await this.client.send(
+			new CreateMultipartUploadCommand({
+				Bucket: bucket,
+				Key: key,
+				...(contentType !== undefined && {ContentType: contentType}),
+			}),
+		);
+		if (result.UploadId === undefined) {
+			throw new Error('No UploadId returned from S3');
+		}
+		return result.UploadId;
+	}
+
+	public async uploadPart(
+		bucket: string,
+		key: string,
+		uploadId: string,
+		partNumber: number,
+		body: ReadableStream<Uint8Array>,
+	): Promise<string> {
+		const chunks: Uint8Array[] = [];
+		const reader = body.getReader();
+		while (true) {
+			const {done, value} = await reader.read();
+			if (done) {
+				break;
+			}
+			if (value !== undefined) {
+				chunks.push(value);
+			}
+		}
+		const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+		const buffer = new Uint8Array(totalLength);
+		let offset = 0;
+		for (const chunk of chunks) {
+			buffer.set(chunk, offset);
+			offset += chunk.length;
+		}
+		const result = await this.client.send(
+			new UploadPartCommand({
+				Bucket: bucket,
+				Key: key,
+				UploadId: uploadId,
+				PartNumber: partNumber,
+				Body: buffer,
+				ContentLength: buffer.length,
+			}),
+		);
+		if (result.ETag === undefined) {
+			throw new Error('No ETag returned from S3');
+		}
+		return result.ETag;
+	}
+
+	public async completeMultipartUpload(
+		bucket: string,
+		key: string,
+		uploadId: string,
+		parts: Array<{partNumber: number; etag: string}>,
+	): Promise<void> {
+		await this.client.send(
+			new CompleteMultipartUploadCommand({
+				Bucket: bucket,
+				Key: key,
+				UploadId: uploadId,
+				MultipartUpload: {
+					Parts: parts.map((p) => ({PartNumber: p.partNumber, ETag: p.etag})),
+				},
+			}),
+		);
+	}
+
+	public async abortMultipartUpload(
+		bucket: string,
+		key: string,
+		uploadId: string,
+	): Promise<void> {
+		await this.client.send(
+			new AbortMultipartUploadCommand({Bucket: bucket, Key: key, UploadId: uploadId}),
+		);
 	}
 }

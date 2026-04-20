@@ -145,6 +145,80 @@ export function createApp(storage: Storage): Hono {
 		}),
 	);
 
+	app.post(
+		'/api/buckets/:bucket/multipart/create',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const key = c.req.query('key') ?? '';
+			if (key === '') {
+				return c.json({error: 'Missing key'}, 400);
+			}
+			const contentType = c.req.query('contentType') || undefined;
+			const uploadId = await storage.createMultipartUpload(bucket, key, contentType);
+			return c.json({uploadId});
+		}),
+	);
+
+	app.put(
+		'/api/buckets/:bucket/multipart/part',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const key = c.req.query('key') ?? '';
+			const uploadId = c.req.query('uploadId') ?? '';
+			const partNumberStr = c.req.query('partNumber') ?? '';
+			if (key === '' || uploadId === '' || partNumberStr === '') {
+				return c.json({error: 'Missing required parameters'}, 400);
+			}
+			const partNumber = parseInt(partNumberStr, 10);
+			if (isNaN(partNumber) || partNumber < 1 || partNumber > 10000) {
+				return c.json({error: 'Invalid partNumber'}, 400);
+			}
+			const body =
+				c.req.raw.body ??
+				new ReadableStream<Uint8Array>({
+					start(ctrl) {
+						ctrl.close();
+					},
+				});
+			const etag = await storage.uploadPart(bucket, key, uploadId, partNumber, body);
+			return c.json({etag});
+		}),
+	);
+
+	app.post(
+		'/api/buckets/:bucket/multipart/complete',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const key = c.req.query('key') ?? '';
+			const uploadId = c.req.query('uploadId') ?? '';
+			if (key === '' || uploadId === '') {
+				return c.json({error: 'Missing required parameters'}, 400);
+			}
+			const {parts} = (await c.req.json()) as {
+				parts: Array<{partNumber: number; etag: string}>;
+			};
+			await storage.completeMultipartUpload(bucket, key, uploadId, parts);
+			const lastSlash = key.lastIndexOf('/');
+			const prefix = lastSlash >= 0 ? key.slice(0, lastSlash + 1) : '';
+			invalidate(bucket, prefix);
+			return c.json({ok: true});
+		}),
+	);
+
+	app.delete(
+		'/api/buckets/:bucket/multipart',
+		withErrorHandler(async (c) => {
+			const {bucket} = c.req.param();
+			const key = c.req.query('key') ?? '';
+			const uploadId = c.req.query('uploadId') ?? '';
+			if (key === '' || uploadId === '') {
+				return c.json({error: 'Missing required parameters'}, 400);
+			}
+			await storage.abortMultipartUpload(bucket, key, uploadId);
+			return c.json({ok: true});
+		}),
+	);
+
 	app.put(
 		'/api/buckets/:bucket/upload',
 		withErrorHandler(async (c) => {

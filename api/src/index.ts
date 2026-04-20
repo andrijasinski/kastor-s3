@@ -25,6 +25,8 @@ const client = new S3Client({
 	region,
 	forcePathStyle: true,
 	requestHandler: new FetchHttpHandler(),
+	requestChecksumCalculation: 'WHEN_REQUIRED',
+	responseChecksumValidation: 'WHEN_REQUIRED',
 });
 
 const storage = new S3Storage(client);

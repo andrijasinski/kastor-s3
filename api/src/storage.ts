@@ -31,4 +31,19 @@ export interface Storage {
 	): Promise<void>;
 	deleteObject(bucket: string, key: string): Promise<void>;
 	deleteObjects(bucket: string, keys: string[]): Promise<void>;
+	createMultipartUpload(bucket: string, key: string, contentType?: string): Promise<string>;
+	uploadPart(
+		bucket: string,
+		key: string,
+		uploadId: string,
+		partNumber: number,
+		body: ReadableStream<Uint8Array>,
+	): Promise<string>;
+	completeMultipartUpload(
+		bucket: string,
+		key: string,
+		uploadId: string,
+		parts: Array<{partNumber: number; etag: string}>,
+	): Promise<void>;
+	abortMultipartUpload(bucket: string, key: string, uploadId: string): Promise<void>;
 }

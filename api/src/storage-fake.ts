@@ -13,6 +13,8 @@ export class FakeStorage implements Storage {
 	private readonly objectsByBucket: Record<string, S3Object[]>;
 	private readonly uploadedKeys: Map<string, string[]> = new Map();
 	private readonly deletedKeys: Map<string, string[]> = new Map();
+	private readonly pendingMultiparts: Map<string, {bucket: string; key: string}> = new Map();
+	private nextUploadId = 1;
 
 	public constructor(
 		buckets: Bucket[],
@@ -113,6 +115,62 @@ export class FakeStorage implements Storage {
 		if (failures.length > 0) {
 			throw new PartialDeleteError(failures);
 		}
+	}
+
+	public async createMultipartUpload(
+		bucket: string,
+		key: string,
+		_contentType?: string,
+	): Promise<string> {
+		if (this.options.fail === true) {
+			throw new Error('FakeStorage: forced failure');
+		}
+		const uploadId = `fake-upload-${this.nextUploadId++}`;
+		this.pendingMultiparts.set(uploadId, {bucket, key});
+		return uploadId;
+	}
+
+	public async uploadPart(
+		_bucket: string,
+		_key: string,
+		uploadId: string,
+		partNumber: number,
+		body: ReadableStream<Uint8Array>,
+	): Promise<string> {
+		if (this.options.fail === true) {
+			throw new Error('FakeStorage: forced failure');
+		}
+		const reader = body.getReader();
+		while (!(await reader.read()).done) {
+			// drain
+		}
+		return `"fake-etag-${uploadId}-${partNumber}"`;
+	}
+
+	public async completeMultipartUpload(
+		bucket: string,
+		key: string,
+		uploadId: string,
+		_parts: Array<{partNumber: number; etag: string}>,
+	): Promise<void> {
+		if (this.options.fail === true) {
+			throw new Error('FakeStorage: forced failure');
+		}
+		this.pendingMultiparts.delete(uploadId);
+		const keys = this.uploadedKeys.get(bucket) ?? [];
+		keys.push(key);
+		this.uploadedKeys.set(bucket, keys);
+	}
+
+	public async abortMultipartUpload(
+		_bucket: string,
+		_key: string,
+		uploadId: string,
+	): Promise<void> {
+		if (this.options.fail === true) {
+			throw new Error('FakeStorage: forced failure');
+		}
+		this.pendingMultiparts.delete(uploadId);
 	}
 
 	public async getBucketStats(name: string): Promise<BucketStats> {
