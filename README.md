@@ -10,28 +10,31 @@ A personal web-based file manager for S3-compatible storage. Browse buckets, upl
 | ---------- | -------------------------------------------- |
 | Frontend   | Vite + React 19 + Mantine 7 + React Router 7 |
 | Backend    | Bun + Hono 4 + AWS SDK v3                    |
-| Deployment | Docker Compose (nginx + Bun API)             |
+| Deployment | Single Docker image (nginx + Bun API)        |
 
 ## Running
 
-**Prerequisites:** Docker and Docker Compose.
-
-Copy this to `.env` and fill in your credentials:
-
-```env
-S3_ENDPOINT=           # S3-compatible endpoint URL
-S3_ACCESS_KEY_ID=
-S3_SECRET_ACCESS_KEY=
-S3_REGION=
-```
-
-Then start everything:
+**Prerequisites:** Docker.
 
 ```bash
-docker-compose up --build -d
+docker run -p 7778:80 \
+  -e S3_ACCESS_KEY_ID=<key> \
+  -e S3_SECRET_ACCESS_KEY=<secret> \
+  -e S3_ENDPOINT=<endpoint> \
+  -e S3_REGION=<region> \
+  projectionist/kastor-s3
 ```
 
 The app is available at `http://localhost:7778`.
+
+### Environment variables
+
+| Variable               | Description                |
+| ---------------------- | -------------------------- |
+| `S3_ACCESS_KEY_ID`     | S3 access key              |
+| `S3_SECRET_ACCESS_KEY` | S3 secret key              |
+| `S3_ENDPOINT`          | S3-compatible endpoint URL |
+| `S3_REGION`            | S3 region                  |
 
 ## Development
 
@@ -68,6 +71,7 @@ cd api && bun test
 - Download single files or entire folders as ZIP
 - Delete objects and folders with confirmation
 - Preview files inline - images are rendered
+- Gallery view for image-heavy folders
 - Navigate between files with prev/next arrows in the preview page
 - Calculate folder size on demand
 - Responsive UI — mobile is read-only; desktop has full controls
