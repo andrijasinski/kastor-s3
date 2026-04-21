@@ -1,6 +1,8 @@
-# kastor-s3
+# Kastor S3
 
 <img src="./logo.png" alt="kastor-s3 logo" width="120" />
+
+☝️ _this is Kastor btw_
 
 A personal web-based file manager for S3-compatible storage. Browse buckets, upload and download files and delete objects — all from a clean browser UI.
 
