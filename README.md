@@ -31,7 +31,7 @@ A personal web-based file manager for S3-compatible storage. Browse buckets, upl
 **Prerequisites:** Docker.
 
 ```bash
-docker run -p 7778:80 \
+docker pull projectionist/kastor-s3 && docker run -p 7778:80 \
   -e S3_ACCESS_KEY_ID=<key> \
   -e S3_SECRET_ACCESS_KEY=<secret> \
   -e S3_ENDPOINT=<endpoint> \
