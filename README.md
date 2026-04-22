@@ -1,5 +1,7 @@
 # Kastor S3
 
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-Revolut-blue?style=flat-square)](https://revolut.me/andrirzfr)
+
 <img src="./logo.png" alt="kastor-s3 logo" width="120" />
 
 ☝️ _this is Kastor btw_
