@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {Link} from 'react-router-dom';
 import {Stack, Text, Tooltip, UnstyledButton} from '@mantine/core';
 import {IconFile, IconFolder} from '@tabler/icons-react';
 import type {S3Object} from '@shared/types';
@@ -12,11 +11,12 @@ interface GalleryTileProps {
 	prefix: string;
 	siblings: S3Object[];
 	onNavigate: (newPrefix: string) => void;
+	onSelectObject: ((key: string) => void) | undefined;
 }
 
 const tileStyle: React.CSSProperties = {
 	width: '100%',
-	border: '1px solid var(--mantine-color-gray-3)',
+	border: '1px solid var(--border-color)',
 	borderRadius: 8,
 	overflow: 'hidden',
 	cursor: 'pointer',
@@ -28,7 +28,7 @@ const visualStyle: React.CSSProperties = {
 	display: 'flex',
 	alignItems: 'center',
 	justifyContent: 'center',
-	background: 'var(--mantine-color-gray-0)',
+	background: 'var(--bg-surface)',
 };
 
 const imgStyle: React.CSSProperties = {
@@ -56,48 +56,56 @@ const TileLabel = ({obj, prefix}: {obj: S3Object; prefix: string}) => {
 	);
 };
 
-const ImageTile = ({
-	obj,
-	bucket,
-	siblings,
-}: {
+interface ImageTileProps {
 	obj: S3Object;
 	bucket: string;
 	siblings: S3Object[];
-}) => {
+	onSelectObject: ((key: string) => void) | undefined;
+}
+
+const ImageTile = ({obj, bucket, onSelectObject}: ImageTileProps) => {
 	const [errored, setErrored] = useState(false);
 	const src = `/api/buckets/${encodeURIComponent(bucket)}/object?key=${encodeURIComponent(obj.key)}`;
 	const keyPrefix = obj.key.slice(0, obj.key.lastIndexOf('/') + 1);
 
 	return (
-		<Link
-			to={`/buckets/${encodeURIComponent(bucket)}/preview?key=${encodeURIComponent(obj.key)}`}
-			state={{siblings}}
-			style={{textDecoration: 'none', color: 'inherit'}}
+		<UnstyledButton
+			onClick={() => {
+				if (onSelectObject !== undefined) {
+					onSelectObject(obj.key);
+				}
+			}}
+			style={tileStyle}
+			aria-label={`Select ${obj.key.slice(keyPrefix.length)}`}
 		>
-			<div style={tileStyle}>
-				<div style={visualStyle}>
-					{errored ? (
-						<IconFile size={48} color="var(--mantine-color-gray-5)" />
-					) : (
-						<img
-							src={src}
-							alt={obj.key}
-							loading="lazy"
-							style={imgStyle}
-							onError={() => {
-								setErrored(true);
-							}}
-						/>
-					)}
-				</div>
-				<TileLabel obj={obj} prefix={keyPrefix} />
+			<div style={visualStyle}>
+				{errored ? (
+					<IconFile size={48} color="var(--text-muted)" />
+				) : (
+					<img
+						src={src}
+						alt={obj.key}
+						loading="lazy"
+						style={imgStyle}
+						onError={() => {
+							setErrored(true);
+						}}
+					/>
+				)}
 			</div>
-		</Link>
+			<TileLabel obj={obj} prefix={keyPrefix} />
+		</UnstyledButton>
 	);
 };
 
-export const GalleryTile = ({obj, bucket, prefix, siblings, onNavigate}: GalleryTileProps) => {
+export const GalleryTile = ({
+	obj,
+	bucket,
+	prefix,
+	siblings,
+	onNavigate,
+	onSelectObject,
+}: GalleryTileProps) => {
 	const name = obj.key.slice(prefix.length);
 
 	if (obj.isPrefix) {
@@ -110,7 +118,7 @@ export const GalleryTile = ({obj, bucket, prefix, siblings, onNavigate}: Gallery
 				aria-label={`Open folder ${name}`}
 			>
 				<div style={visualStyle}>
-					<IconFolder size={48} color="var(--mantine-color-blue-5)" />
+					<IconFolder size={48} color="var(--accent-text)" />
 				</div>
 				<TileLabel obj={obj} prefix={prefix} />
 			</UnstyledButton>
@@ -118,13 +126,20 @@ export const GalleryTile = ({obj, bucket, prefix, siblings, onNavigate}: Gallery
 	}
 
 	if (isImageFile(obj.key)) {
-		return <ImageTile obj={obj} bucket={bucket} siblings={siblings} />;
+		return (
+			<ImageTile
+				obj={obj}
+				bucket={bucket}
+				siblings={siblings}
+				onSelectObject={onSelectObject}
+			/>
+		);
 	}
 
 	return (
 		<div style={{...tileStyle, cursor: 'default'}}>
 			<div style={visualStyle}>
-				<IconFile size={48} color="var(--mantine-color-gray-5)" />
+				<IconFile size={48} color="var(--text-muted)" />
 			</div>
 			<TileLabel obj={obj} prefix={prefix} />
 		</div>

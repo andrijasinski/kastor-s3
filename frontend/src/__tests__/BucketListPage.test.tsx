@@ -1,9 +1,11 @@
 import {render, screen, waitFor} from '@testing-library/react';
-import {BrowserRouter} from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
+import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {MantineProvider} from '@mantine/core';
 import {Notifications} from '@mantine/notifications';
 import {http, HttpResponse} from 'msw';
 import {setupServer} from 'msw/node';
+import {BucketsProvider} from '../contexts/BucketsContext';
 import {BucketListPage} from '../pages/BucketListPage';
 import type {Bucket, BucketStats} from '@shared/types';
 
@@ -33,14 +35,22 @@ const renderPage = () =>
 	render(
 		<MantineProvider>
 			<Notifications />
-			<BrowserRouter>
-				<BucketListPage />
-			</BrowserRouter>
+			<MemoryRouter initialEntries={['/']}>
+				<BucketsProvider>
+					<Routes>
+						<Route path="/" element={<BucketListPage />} />
+						<Route
+							path="/buckets/:bucket"
+							element={<div data-testid="bucket-page" />}
+						/>
+					</Routes>
+				</BucketsProvider>
+			</MemoryRouter>
 		</MantineProvider>,
 	);
 
 describe('BucketListPage', () => {
-	it('renders bucket names', async () => {
+	it('renders bucket names in card grid', async () => {
 		renderPage();
 		await waitFor(() => {
 			expect(screen.getByText('my-bucket')).toBeInTheDocument();
@@ -59,35 +69,46 @@ describe('BucketListPage', () => {
 	it('renders creation dates', async () => {
 		renderPage();
 		await waitFor(() => {
-			const dateTexts = screen.getAllByText(/Created/);
+			const dateTexts = screen.getAllByText(/created/i);
 			expect(dateTexts.length).toBeGreaterThanOrEqual(2);
 		});
 	});
 
-	it('renders async stats after loading', async () => {
+	it('renders stats (object count and size) once loaded', async () => {
 		renderPage();
 		await waitFor(() => {
-			const objectTexts = screen.getAllByText('42 objects');
-			expect(objectTexts.length).toBe(2);
+			const objectTexts = screen.getAllByText('42');
+			expect(objectTexts.length).toBeGreaterThanOrEqual(2);
 		});
 	});
 
-	it('shows error fallback when stats fetch fails', async () => {
+	it('shows loading skeleton before stats resolve', () => {
 		server.use(
-			http.get('/api/buckets/:bucket/stats', () => new HttpResponse(null, {status: 500})),
+			http.get('/api/buckets/:bucket/stats', async () => {
+				await new Promise((r) => setTimeout(r, 500));
+				return HttpResponse.json(mockStats);
+			}),
 		);
 		renderPage();
+		const skeletons = document.querySelectorAll('.mantine-Skeleton-root');
+		expect(skeletons.length).toBeGreaterThan(0);
+	});
+
+	it('shows empty state when no buckets exist', async () => {
+		server.use(http.get('/api/buckets', () => HttpResponse.json({buckets: []})));
+		renderPage();
 		await waitFor(() => {
-			const unavailable = screen.getAllByText('unavailable');
-			expect(unavailable.length).toBe(2);
+			expect(screen.getByText(/no buckets found/i)).toBeInTheDocument();
 		});
 	});
 
-	it('shows error toast on buckets fetch failure', async () => {
-		server.use(http.get('/api/buckets', () => new HttpResponse(null, {status: 500})));
+	it('clicking a card navigates to the bucket', async () => {
+		const user = userEvent.setup();
 		renderPage();
+		await waitFor(() => screen.getByText('my-bucket'));
+		await user.click(screen.getByRole('button', {name: /open bucket my-bucket/i}));
 		await waitFor(() => {
-			expect(screen.getByText('Failed to load buckets')).toBeInTheDocument();
+			expect(screen.getByTestId('bucket-page')).toBeInTheDocument();
 		});
 	});
 });

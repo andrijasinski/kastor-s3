@@ -1,21 +1,16 @@
 import {Routes, Route} from 'react-router-dom';
-import {Link} from 'react-router-dom';
-import {Container} from '@mantine/core';
+import {BucketsProvider} from './contexts/BucketsContext';
+import {AppShell} from './components/AppShell';
 import {BucketListPage} from './pages/BucketListPage';
 import {ObjectBrowserPage} from './pages/ObjectBrowserPage';
-import {ImagePreviewPage} from './pages/ImagePreviewPage';
 
 export const App = () => (
-	<>
-		<Container size="lg" pt="md">
-			<Link to="/">
-				<img src="/logo.png" alt="Home" height={48} style={{display: 'block'}} />
-			</Link>
-		</Container>
-		<Routes>
-			<Route path="/" element={<BucketListPage />} />
-			<Route path="/buckets/:bucket" element={<ObjectBrowserPage />} />
-			<Route path="/buckets/:bucket/preview" element={<ImagePreviewPage />} />
-		</Routes>
-	</>
+	<BucketsProvider>
+		<AppShell>
+			<Routes>
+				<Route path="/" element={<BucketListPage />} />
+				<Route path="/buckets/:bucket" element={<ObjectBrowserPage />} />
+			</Routes>
+		</AppShell>
+	</BucketsProvider>
 );

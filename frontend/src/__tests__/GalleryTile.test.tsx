@@ -1,22 +1,21 @@
 import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {MemoryRouter} from 'react-router-dom';
 import {MantineProvider} from '@mantine/core';
+import {vi} from 'vitest';
 import {GalleryTile} from '../components/GalleryTile';
 import type {S3Object} from '@shared/types';
 
-const renderTile = (obj: S3Object, onNavigate = vi.fn()) =>
+const renderTile = (obj: S3Object, onNavigate = vi.fn(), onSelectObject = vi.fn()) =>
 	render(
 		<MantineProvider>
-			<MemoryRouter>
-				<GalleryTile
-					obj={obj}
-					bucket="my-bucket"
-					prefix=""
-					siblings={[]}
-					onNavigate={onNavigate}
-				/>
-			</MemoryRouter>
+			<GalleryTile
+				obj={obj}
+				bucket="my-bucket"
+				prefix=""
+				siblings={[]}
+				onNavigate={onNavigate}
+				onSelectObject={onSelectObject}
+			/>
 		</MantineProvider>,
 	);
 
@@ -39,11 +38,10 @@ describe('GalleryTile', () => {
 		expect(screen.getByRole('button', {name: /open folder photos\//i})).toBeInTheDocument();
 	});
 
-	it('shows file icon for non-image file', () => {
+	it('shows file icon for non-image file — no img tag', () => {
 		const obj: S3Object = {key: 'report.pdf', size: 1024, lastModified: '', isPrefix: false};
 		renderTile(obj);
 		expect(screen.queryByRole('img')).not.toBeInTheDocument();
-		expect(screen.queryByRole('link')).not.toBeInTheDocument();
 	});
 
 	it('shows img tag for image file', () => {
@@ -63,10 +61,18 @@ describe('GalleryTile', () => {
 		expect(onNavigate).toHaveBeenCalledWith('photos/');
 	});
 
-	it('image tile links to preview page', () => {
+	it('image tile calls onSelectObject with the key', async () => {
+		const user = userEvent.setup();
+		const onSelectObject = vi.fn();
+		const obj: S3Object = {key: 'photo.jpg', size: 1024, lastModified: '', isPrefix: false};
+		renderTile(obj, vi.fn(), onSelectObject);
+		await user.click(screen.getByRole('button', {name: /select photo\.jpg/i}));
+		expect(onSelectObject).toHaveBeenCalledWith('photo.jpg');
+	});
+
+	it('image tile does not render a link to the preview page', () => {
 		const obj: S3Object = {key: 'photo.jpg', size: 1024, lastModified: '', isPrefix: false};
 		renderTile(obj);
-		const link = screen.getByRole('link');
-		expect(link).toHaveAttribute('href', '/buckets/my-bucket/preview?key=photo.jpg');
+		expect(screen.queryByRole('link')).not.toBeInTheDocument();
 	});
 });

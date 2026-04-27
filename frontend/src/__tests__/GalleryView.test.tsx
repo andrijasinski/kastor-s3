@@ -1,32 +1,31 @@
 import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {MemoryRouter} from 'react-router-dom';
 import {MantineProvider} from '@mantine/core';
+import {vi} from 'vitest';
 import {GalleryView} from '../components/GalleryView';
 import type {S3Object} from '@shared/types';
 
 const objects: S3Object[] = [
 	{key: 'docs/', size: 0, lastModified: '', isPrefix: true},
-	{key: 'photo.jpg', size: 204800, lastModified: '', isPrefix: false},
+	{key: 'photo.jpg', size: 204800, lastModified: '2024-01-01T00:00:00.000Z', isPrefix: false},
 	{key: 'report.pdf', size: 1024, lastModified: '', isPrefix: false},
 ];
 
-const renderView = (onNavigate = vi.fn()) =>
+const renderView = (onNavigate = vi.fn(), onSelectObject = vi.fn()) =>
 	render(
 		<MantineProvider>
-			<MemoryRouter>
-				<GalleryView
-					objects={objects}
-					bucket="my-bucket"
-					prefix=""
-					onNavigate={onNavigate}
-				/>
-			</MemoryRouter>
+			<GalleryView
+				objects={objects}
+				bucket="my-bucket"
+				prefix=""
+				onNavigate={onNavigate}
+				onSelectObject={onSelectObject}
+			/>
 		</MantineProvider>,
 	);
 
 describe('GalleryView', () => {
-	it('renders correct number of tiles', () => {
+	it('renders the correct number of tiles', () => {
 		renderView();
 		expect(screen.getByText('docs/')).toBeInTheDocument();
 		expect(screen.getByText('photo.jpg')).toBeInTheDocument();
@@ -52,9 +51,23 @@ describe('GalleryView', () => {
 		expect(onNavigate).toHaveBeenCalledWith('docs/');
 	});
 
-	it('clicking image tile links to preview page', () => {
+	it('clicking image tile calls onSelectObject with the key', async () => {
+		const user = userEvent.setup();
+		const onSelectObject = vi.fn();
+		renderView(vi.fn(), onSelectObject);
+		await user.click(screen.getByRole('button', {name: /select photo\.jpg/i}));
+		expect(onSelectObject).toHaveBeenCalledWith('photo.jpg');
+	});
+
+	it('renders GROUP BY control', () => {
 		renderView();
-		const link = screen.getByRole('link');
-		expect(link).toHaveAttribute('href', '/buckets/my-bucket/preview?key=photo.jpg');
+		expect(screen.getByText('Date')).toBeInTheDocument();
+		expect(screen.getByText('Type')).toBeInTheDocument();
+		expect(screen.getByText('None')).toBeInTheDocument();
+	});
+
+	it('renders tile size label', () => {
+		renderView();
+		expect(screen.getByText('Tile size')).toBeInTheDocument();
 	});
 });
