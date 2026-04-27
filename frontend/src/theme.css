@@ -1,0 +1,60 @@
+:root {
+	/* Layout */
+	--rail-width: 264px;
+	--rail-bg: #0c0f0d;
+
+	/* Surface palette */
+	--bg-base: #0e1010;
+	--bg-surface: #161a18;
+	--bg-hover: #1d211f;
+
+	/* Borders */
+	--border-color: rgba(242, 255, 244, 0.06);
+	--border-strong: rgba(242, 255, 244, 0.1);
+
+	/* Text */
+	--text-primary: #ecedec;
+	--text-muted: rgba(229, 253, 245, 0.46);
+	--text-muted2: rgba(229, 253, 245, 0.6);
+
+	/* Danger */
+	--danger: #ff9f94;
+
+	/* Accent — dynamic via Tweaks hue slider */
+	--accent-h: 150;
+	--accent: hsl(var(--accent-h), 52%, 35%);
+	--accent-hover: hsl(var(--accent-h), 52%, 42%);
+	--accent-dim: hsl(var(--accent-h), 52%, 10%);
+	--accent-text: hsl(var(--accent-h), 52%, 62%);
+	--accent-border: hsl(var(--accent-h), 30%, 22%);
+
+	/* Typography */
+	--font-display: 'Inter', system-ui, -apple-system, sans-serif;
+	--font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* Bridge our accent to Mantine's custom color so Mantine components use it */
+[data-mantine-color-scheme='dark'] {
+	--mantine-color-body: var(--bg-base);
+	--mantine-color-kgreen-filled: var(--accent);
+	--mantine-color-kgreen-filled-hover: var(--accent-hover);
+	--mantine-color-kgreen-light: var(--accent-dim);
+	--mantine-color-kgreen-light-hover: var(--accent-dim);
+	--mantine-color-kgreen-light-color: var(--accent-text);
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	height: 100%;
+	background: var(--bg-base);
+	color: var(--text-primary);
+	font-family: var(--font-display);
+	font-size: 16px;
+	-webkit-font-smoothing: antialiased;
+}

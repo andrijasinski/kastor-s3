@@ -14,4 +14,6 @@ export interface S3Object {
 	size: number;
 	lastModified: string;
 	isPrefix: boolean;
+	etag?: string;
+	contentType?: string;
 }

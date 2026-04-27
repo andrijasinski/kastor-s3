@@ -10,3 +10,4 @@ shared/**/*.js
 frontend/**/*.js
 api/**/*.js
 plans/
+prd/

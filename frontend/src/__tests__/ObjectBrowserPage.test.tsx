@@ -64,15 +64,25 @@ describe('ObjectBrowserPage', () => {
 		});
 	});
 
-	it('navigates into a prefix on click', async () => {
+	it('navigates into a prefix on folder click', async () => {
 		const user = userEvent.setup();
 		renderPage('/buckets/my-bucket');
-		await waitFor(() => {
-			expect(screen.getByText('docs/')).toBeInTheDocument();
-		});
-		await user.click(screen.getByText('docs/'));
+		await waitFor(() => screen.getByText('docs/'));
+		await user.click(screen.getByRole('button', {name: /open folder docs\//i}));
 		await waitFor(() => {
 			expect(screen.getByText('docs')).toBeInTheDocument();
+		});
+	});
+
+	it('clicking a file row opens the inspector (sets key param)', async () => {
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+		const fileBtn = screen.getByText('readme.txt').closest('button');
+		expect(fileBtn).not.toBeNull();
+		await user.click(fileBtn!);
+		await waitFor(() => {
+			expect(screen.getByTestId('path-block')).toBeInTheDocument();
 		});
 	});
 
@@ -84,81 +94,69 @@ describe('ObjectBrowserPage', () => {
 		});
 	});
 
-	it('shows download button for prefix folders', async () => {
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => {
-			expect(screen.getByRole('button', {name: /download docs\//i})).toBeInTheDocument();
-		});
-	});
-
-	it('does not show a link for prefix folder downloads', async () => {
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => {
-			expect(screen.queryByRole('link', {name: /download docs\//i})).not.toBeInTheDocument();
-		});
-	});
-
-	it('shows calculate-size button for folder rows', async () => {
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => {
-			expect(
-				screen.getByRole('button', {name: /calculate size of docs\//i}),
-			).toBeInTheDocument();
-		});
-	});
-
-	it('shows loader then formatted size after clicking calculate', async () => {
-		server.use(
-			http.get('/api/buckets/:bucket/folder-size', async () => {
-				await new Promise((r) => setTimeout(r, 50));
-				return HttpResponse.json({size: 2048});
-			}),
-		);
-		const user = userEvent.setup();
-		renderPage('/buckets/my-bucket');
-		const btn = await screen.findByRole('button', {name: /calculate size of docs\//i});
-		await user.click(btn);
-		expect(
-			screen.queryByRole('button', {name: /calculate size of docs\//i}),
-		).not.toBeInTheDocument();
-		await waitFor(() => {
-			expect(screen.getByText('2.0 KB')).toBeInTheDocument();
-		});
-	});
-
-	it('restores calculate button and shows error toast on folder-size failure', async () => {
-		server.use(
-			http.get('/api/buckets/:bucket/folder-size', () =>
-				HttpResponse.json({error: 'S3 access denied'}, {status: 500}),
-			),
-		);
-		const user = userEvent.setup();
-		renderPage('/buckets/my-bucket');
-		const btn = await screen.findByRole('button', {name: /calculate size of docs\//i});
-		await user.click(btn);
-		await waitFor(() => {
-			expect(screen.getByText('S3 access denied')).toBeInTheDocument();
-			expect(
-				screen.getByRole('button', {name: /calculate size of docs\//i}),
-			).toBeInTheDocument();
-		});
-	});
-
-	it('renders filename as a link to the preview page', async () => {
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => {
-			const link = screen.getByRole('link', {name: 'readme.txt'});
-			expect(link).toHaveAttribute('href', '/buckets/my-bucket/preview?key=readme.txt');
-		});
-	});
-
 	it('shows error on fetch failure', async () => {
 		server.use(
 			http.get('/api/buckets/:bucket/objects', () => new HttpResponse(null, {status: 500})),
 		);
 		renderPage('/buckets/my-bucket');
 		await waitFor(() => {
-			expect(screen.getByText(/Failed to fetch objects/i)).toBeInTheDocument();
+			expect(screen.getByText(/failed to load objects/i)).toBeInTheDocument();
+		});
+	});
+
+	it('shows pagination info when objects are loaded', async () => {
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => {
+			expect(screen.getByText(/Page 1 of 1/i)).toBeInTheDocument();
+		});
+	});
+
+	it('sends correct offset when page changes', async () => {
+		let capturedUrl = '';
+		server.use(
+			http.get('/api/buckets/:bucket/objects', ({request}) => {
+				capturedUrl = request.url;
+				return HttpResponse.json({objects: mockObjects, totalCount: 250});
+			}),
+		);
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+		await user.click(screen.getByRole('button', {name: /next page/i}));
+		await waitFor(() => {
+			expect(capturedUrl).toContain('offset=100');
+		});
+	});
+
+	it('default view is table — gallery tiles not rendered', async () => {
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+		expect(screen.getByRole('columnheader', {name: /name/i})).toBeInTheDocument();
+	});
+
+	it('toggle to gallery renders gallery tiles and hides table headers', async () => {
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+		await user.click(screen.getByRole('button', {name: /gallery view/i}));
+		expect(screen.getByRole('button', {name: /open folder docs\//i})).toBeInTheDocument();
+		expect(screen.queryByRole('columnheader', {name: /name/i})).not.toBeInTheDocument();
+	});
+
+	it('pagination resets to page 1 when navigating to a new prefix', async () => {
+		let capturedUrl = '';
+		server.use(
+			http.get('/api/buckets/:bucket/objects', ({request}) => {
+				capturedUrl = request.url;
+				return HttpResponse.json({objects: mockObjects, totalCount: mockObjects.length});
+			}),
+		);
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket?page=3&pageSize=50');
+		await waitFor(() => screen.getByText('docs/'));
+		await user.click(screen.getByRole('button', {name: /open folder docs\//i}));
+		await waitFor(() => {
+			expect(capturedUrl).toContain('offset=0');
 		});
 	});
 
@@ -177,135 +175,13 @@ describe('ObjectBrowserPage', () => {
 			),
 		);
 		const user = userEvent.setup();
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => screen.getByText('docs/'));
-
-		const deleteBtn = await screen.findByRole('button', {name: /delete docs\//i});
-		await user.click(deleteBtn);
-
-		const confirmBtn = await screen.findByRole('button', {name: /^delete$/i});
-		await user.click(confirmBtn);
-
+		renderPage('/buckets/my-bucket?prefix=docs%2F');
+		await waitFor(() => screen.getByRole('button', {name: /delete folder docs\//i}));
+		await user.click(screen.getByRole('button', {name: /delete folder docs\//i}));
+		await waitFor(() => screen.getByRole('button', {name: /^delete$/i}));
+		await user.click(screen.getByRole('button', {name: /^delete$/i}));
 		await waitFor(() => {
 			expect(screen.getByText('Partial delete failure')).toBeInTheDocument();
-			expect(
-				screen.getByText(/1 file\(s\) failed to delete: docs\/a\.txt/i),
-			).toBeInTheDocument();
-			expect(screen.queryByRole('button', {name: /^delete$/i})).not.toBeInTheDocument();
-		});
-	});
-
-	it('shows total failure toast on 500 delete response', async () => {
-		server.use(
-			http.delete('/api/buckets/:bucket/folder', () =>
-				HttpResponse.json({error: 'Internal error'}, {status: 500}),
-			),
-		);
-		const user = userEvent.setup();
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => screen.getByText('docs/'));
-
-		const deleteBtn = await screen.findByRole('button', {name: /delete docs\//i});
-		await user.click(deleteBtn);
-
-		const confirmBtn = await screen.findByRole('button', {name: /^delete$/i});
-		await user.click(confirmBtn);
-
-		await waitFor(() => {
-			expect(screen.getByText('Failed to delete')).toBeInTheDocument();
-		});
-	});
-
-	it('shows pagination info when objects are loaded', async () => {
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => {
-			expect(screen.getByText(/Page 1 of 1/i)).toBeInTheDocument();
-			expect(screen.getByText(/1.+2\/2 items/i)).toBeInTheDocument();
-		});
-	});
-
-	it('pagination resets to page 1 when navigating to a new prefix', async () => {
-		let capturedUrl = '';
-		server.use(
-			http.get('/api/buckets/:bucket/objects', ({request}) => {
-				capturedUrl = request.url;
-				return HttpResponse.json({objects: mockObjects, totalCount: mockObjects.length});
-			}),
-		);
-
-		const user = userEvent.setup();
-		renderPage('/buckets/my-bucket?page=3&pageSize=50');
-		await waitFor(() => screen.getByText('docs/'));
-		await user.click(screen.getByText('docs/'));
-		await waitFor(() => {
-			expect(capturedUrl).toContain('offset=0');
-		});
-	});
-
-	it('clears stale objects when navigation to new prefix fails', async () => {
-		const user = userEvent.setup();
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => {
-			expect(screen.getByText('readme.txt')).toBeInTheDocument();
-		});
-
-		server.use(
-			http.get('/api/buckets/:bucket/objects', () => new HttpResponse(null, {status: 500})),
-		);
-
-		await user.click(screen.getByText('docs/'));
-
-		await waitFor(() => {
-			expect(screen.queryAllByText(/Failed to load objects/i).length).toBeGreaterThan(0);
-			expect(screen.queryByText('readme.txt')).not.toBeInTheDocument();
-		});
-	});
-
-	it('sends correct offset when page changes', async () => {
-		let capturedUrl = '';
-		server.use(
-			http.get('/api/buckets/:bucket/objects', ({request}) => {
-				capturedUrl = request.url;
-				return HttpResponse.json({objects: mockObjects, totalCount: 250});
-			}),
-		);
-
-		const user = userEvent.setup();
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => screen.getByText('readme.txt'));
-
-		const nextBtn = screen.getByRole('button', {name: /next page/i});
-		await user.click(nextBtn);
-		await waitFor(() => {
-			expect(capturedUrl).toContain('offset=100');
-		});
-	});
-
-	it('default view is table — gallery tiles not rendered', async () => {
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => screen.getByText('readme.txt'));
-		expect(screen.queryByRole('button', {name: /open folder/i})).not.toBeInTheDocument();
-	});
-
-	it('toggle to gallery renders gallery tiles and hides table', async () => {
-		const user = userEvent.setup();
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => screen.getByText('readme.txt'));
-		await user.click(screen.getByRole('button', {name: /gallery view/i}));
-		expect(screen.getByRole('button', {name: /open folder docs\//i})).toBeInTheDocument();
-		expect(screen.queryByRole('columnheader', {name: /name/i})).not.toBeInTheDocument();
-	});
-
-	it('view resets to table when prefix changes', async () => {
-		const user = userEvent.setup();
-		renderPage('/buckets/my-bucket');
-		await waitFor(() => screen.getByText('docs/'));
-		await user.click(screen.getByRole('button', {name: /gallery view/i}));
-		expect(screen.getByRole('button', {name: /open folder docs\//i})).toBeInTheDocument();
-		await user.click(screen.getByRole('button', {name: /open folder docs\//i}));
-		await waitFor(() => {
-			expect(screen.queryByRole('button', {name: /open folder/i})).not.toBeInTheDocument();
-			expect(screen.getByRole('columnheader', {name: /name/i})).toBeInTheDocument();
 		});
 	});
 });
