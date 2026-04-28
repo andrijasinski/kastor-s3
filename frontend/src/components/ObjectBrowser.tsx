@@ -220,9 +220,7 @@ export const ObjectBrowser = ({
 										truncate
 										style={{
 											color: 'var(--text-primary)',
-											fontFamily: isBucket
-												? 'var(--font-display)'
-												: 'var(--font-mono)',
+											fontFamily: 'var(--font-display)',
 											fontSize: isBucket ? 15 : 13,
 										}}
 									>
@@ -240,9 +238,7 @@ export const ObjectBrowser = ({
 											cursor: 'pointer',
 											color: 'var(--accent-text)',
 											fontSize: isBucket ? 15 : 13,
-											fontFamily: isBucket
-												? 'var(--font-display)'
-												: 'var(--font-mono)',
+											fontFamily: 'var(--font-display)',
 											borderRadius: 3,
 											flexShrink: 0,
 										}}
@@ -622,8 +618,8 @@ const ObjectRow = ({
 						<Text
 							truncate
 							style={{
-								fontFamily: 'var(--font-mono)',
-								fontSize: 13,
+								fontFamily: 'var(--font-display)',
+								fontSize: 14,
 								color: 'var(--text-primary)',
 							}}
 						>
