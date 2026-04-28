@@ -79,6 +79,22 @@ describe('ObjectInspector', () => {
 		expect(img).toHaveAttribute('src', '/api/buckets/my-bucket/object?key=photos%2Fbeach.jpg');
 	});
 
+	it('shows loading text while image has not yet loaded', () => {
+		renderInspector('photos/beach.jpg');
+		expect(screen.getByText('kastor is purring...')).toBeInTheDocument();
+	});
+
+	it('hides loading text once image fires onLoad', async () => {
+		renderInspector('photos/beach.jpg');
+		const img = screen.getByRole('img', {name: 'beach.jpg'});
+		await waitFor(() => {
+			img.dispatchEvent(new Event('load'));
+		});
+		await waitFor(() => {
+			expect(screen.queryByText('kastor is purring...')).not.toBeInTheDocument();
+		});
+	});
+
 	it('renders fallback icon for a non-image file', async () => {
 		renderInspector('photos/report.pdf');
 		await waitFor(() => {

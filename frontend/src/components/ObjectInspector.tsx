@@ -17,6 +17,45 @@ import {formatDate, formatSize} from '../utils/format';
 const objectUrl = (bucket: string, key: string): string =>
 	`/api/buckets/${encodeURIComponent(bucket)}/object?key=${encodeURIComponent(key)}`;
 
+// Change to try a different loading text style: 'subtle' | 'elegant' | 'brand'
+const LOADING_TEXT_STYLE: 'subtle' | 'elegant' | 'brand' = 'subtle';
+
+const loadingTextBase: React.CSSProperties = {
+	position: 'absolute',
+	top: '50%',
+	left: '50%',
+	transform: 'translate(-50%, -50%)',
+	zIndex: 2,
+	pointerEvents: 'none',
+	whiteSpace: 'nowrap',
+};
+
+const LOADING_TEXT_VARIANTS = {
+	subtle: {
+		c: 'white',
+		size: 'xs' as const,
+		style: loadingTextBase,
+	},
+	elegant: {
+		c: 'white',
+		size: 'sm' as const,
+		fs: 'italic' as const,
+		style: {
+			...loadingTextBase,
+			letterSpacing: '0.06em',
+			opacity: 0.8,
+			textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+		},
+	},
+	brand: {
+		c: 'blue.4',
+		size: 'xs' as const,
+		fw: 600,
+		tt: 'uppercase' as const,
+		style: {...loadingTextBase, letterSpacing: '0.1em'},
+	},
+};
+
 const downloadUrl = (bucket: string, key: string): string =>
 	`/api/buckets/${encodeURIComponent(bucket)}/download?key=${encodeURIComponent(key)}`;
 
@@ -332,15 +371,20 @@ export const ObjectInspector = ({
 						}}
 					>
 						{!imgLoaded && (
-							<Skeleton
-								style={{
-									position: 'absolute',
-									inset: 0,
-									width: '100%',
-									height: '100%',
-									zIndex: 1,
-								}}
-							/>
+							<>
+								<Skeleton
+									style={{
+										position: 'absolute',
+										inset: 0,
+										width: '100%',
+										height: '100%',
+										zIndex: 1,
+									}}
+								/>
+								<Text {...LOADING_TEXT_VARIANTS[LOADING_TEXT_STYLE]}>
+									kastor is purring...
+								</Text>
+							</>
 						)}
 						<img
 							key={objectKey}
