@@ -8,12 +8,15 @@ import {setupServer} from 'msw/node';
 import {vi} from 'vitest';
 import {ObjectBrowserPage} from '../pages/ObjectBrowserPage';
 import type {S3Object} from '@shared/types';
+import * as resolveDropEntriesModule from '../utils/resolveDropEntries';
 
 vi.mock('streamsaver', () => ({
 	default: {
 		createWriteStream: vi.fn(() => new WritableStream()),
 	},
 }));
+
+vi.mock('../utils/resolveDropEntries');
 
 const mockObjects: S3Object[] = [
 	{key: 'docs/', size: 0, lastModified: '', isPrefix: true},
@@ -157,6 +160,88 @@ describe('ObjectBrowserPage', () => {
 		await user.click(screen.getByRole('button', {name: /open folder docs\//i}));
 		await waitFor(() => {
 			expect(capturedUrl).toContain('offset=0');
+		});
+	});
+
+	it('drop event triggers multipart upload with the resolved file key', async () => {
+		const droppedFile = new File(['hello'], 'dropped.txt', {type: 'text/plain'});
+		vi.mocked(resolveDropEntriesModule.resolveDropEntries).mockResolvedValue([
+			{file: droppedFile, relativePath: 'dropped.txt'},
+		]);
+
+		let createKey = '';
+		let partKey = '';
+		let completeKey = '';
+		server.use(
+			http.post('/api/buckets/:bucket/multipart/create', ({request}) => {
+				const url = new URL(request.url);
+				createKey = url.searchParams.get('key') ?? '';
+				return HttpResponse.json({uploadId: 'test-id'});
+			}),
+			http.put('/api/buckets/:bucket/multipart/part', ({request}) => {
+				const url = new URL(request.url);
+				partKey = url.searchParams.get('key') ?? '';
+				return HttpResponse.json({etag: '"etag1"'});
+			}),
+			http.post('/api/buckets/:bucket/multipart/complete', ({request}) => {
+				const url = new URL(request.url);
+				completeKey = url.searchParams.get('key') ?? '';
+				return HttpResponse.json({});
+			}),
+		);
+
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+
+		const container = screen.getByTestId('object-browser');
+		const dropEvent = new Event('drop', {bubbles: true, cancelable: true});
+		Object.defineProperty(dropEvent, 'dataTransfer', {
+			value: {items: {} as DataTransferItemList},
+			writable: false,
+		});
+		container.dispatchEvent(dropEvent);
+
+		await waitFor(() => {
+			expect(createKey).toBe('dropped.txt');
+			expect(partKey).toBe('dropped.txt');
+			expect(completeKey).toBe('dropped.txt');
+		});
+	});
+
+	it('drop upload error shows "Upload failed" notification and aborts the multipart upload', async () => {
+		const droppedFile = new File(['hello'], 'fail.txt', {type: 'text/plain'});
+		vi.mocked(resolveDropEntriesModule.resolveDropEntries).mockResolvedValue([
+			{file: droppedFile, relativePath: 'fail.txt'},
+		]);
+
+		let abortCalled = false;
+		server.use(
+			http.post('/api/buckets/:bucket/multipart/create', () =>
+				HttpResponse.json({uploadId: 'fail-id'}),
+			),
+			http.put(
+				'/api/buckets/:bucket/multipart/part',
+				() => new HttpResponse(null, {status: 500}),
+			),
+			http.delete('/api/buckets/:bucket/multipart', () => {
+				abortCalled = true;
+				return HttpResponse.json({});
+			}),
+		);
+
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+
+		const dropEvent = new Event('drop', {bubbles: true, cancelable: true});
+		Object.defineProperty(dropEvent, 'dataTransfer', {
+			value: {items: {} as DataTransferItemList},
+			writable: false,
+		});
+		screen.getByTestId('object-browser').dispatchEvent(dropEvent);
+
+		await waitFor(() => {
+			expect(screen.getByText('Upload failed')).toBeInTheDocument();
+			expect(abortCalled).toBe(true);
 		});
 	});
 

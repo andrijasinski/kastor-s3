@@ -15,6 +15,7 @@ import streamSaver from 'streamsaver';
 import type {S3Object} from '@shared/types';
 import {buildBreadcrumbSegments} from '../utils/breadcrumbs';
 import {formatDate, formatSize} from '../utils/format';
+import {DragOverlay} from './DragOverlay';
 import {GalleryView} from './GalleryView';
 import {PaginationControls} from './Pagination';
 
@@ -35,6 +36,8 @@ interface ObjectBrowserProps {
 	pageSize: number;
 	selectedKey: string | null;
 	uploadProgress: UploadProgress | null;
+	isDragging: boolean;
+	dragProps: React.HTMLAttributes<HTMLDivElement>;
 	onNavigate: (prefix: string) => void;
 	onSelectObject: (key: string | null) => void;
 	onPageChange: (page: number) => void;
@@ -86,6 +89,8 @@ export const ObjectBrowser = ({
 	pageSize,
 	selectedKey,
 	uploadProgress,
+	isDragging,
+	dragProps,
 	onNavigate,
 	onSelectObject,
 	onPageChange,
@@ -165,7 +170,12 @@ export const ObjectBrowser = ({
 	};
 
 	return (
-		<div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+		<div
+			data-testid="object-browser"
+			style={{display: 'flex', flexDirection: 'column', height: '100%', position: 'relative'}}
+			{...dragProps}
+		>
+			<DragOverlay show={isDragging} />
 			{/* Top bar */}
 			<div
 				style={{
