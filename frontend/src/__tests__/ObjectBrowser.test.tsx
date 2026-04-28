@@ -1,4 +1,4 @@
-import {render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {MantineProvider} from '@mantine/core';
@@ -184,6 +184,36 @@ describe('ObjectBrowser', () => {
 		await user.click(screen.getByRole('button', {name: /^delete$/i}));
 		await waitFor(() => {
 			expect(deleteCalled).toBe(true);
+		});
+	});
+
+	it('drag overlay is absent under normal conditions', async () => {
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+		expect(screen.queryByLabelText('Drop to upload')).not.toBeInTheDocument();
+	});
+
+	it('drag overlay appears when dragging over the browser container', async () => {
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+		const container = screen.getByTestId('object-browser');
+		fireEvent.dragEnter(container);
+		await waitFor(() => {
+			expect(screen.getByLabelText('Drop to upload')).toBeInTheDocument();
+		});
+	});
+
+	it('drag overlay disappears when dragging out of the browser container', async () => {
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('readme.txt'));
+		const container = screen.getByTestId('object-browser');
+		fireEvent.dragEnter(container);
+		await waitFor(() => {
+			expect(screen.getByLabelText('Drop to upload')).toBeInTheDocument();
+		});
+		fireEvent.dragLeave(container);
+		await waitFor(() => {
+			expect(screen.queryByLabelText('Drop to upload')).not.toBeInTheDocument();
 		});
 	});
 });

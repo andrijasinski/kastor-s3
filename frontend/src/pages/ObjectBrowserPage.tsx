@@ -13,6 +13,8 @@ import {
 } from '../api/client';
 import {ObjectBrowser} from '../components/ObjectBrowser';
 import {ObjectInspector} from '../components/ObjectInspector';
+import {useDragUpload} from '../hooks/useDragUpload';
+import type {ResolvedFile} from '../utils/resolveDropEntries';
 
 interface UploadProgress {
 	done: number;
@@ -176,19 +178,16 @@ export const ObjectBrowserPage = () => {
 		await res.body.pipeTo(fileStream);
 	};
 
-	const uploadFiles = async (files: FileList): Promise<void> => {
-		const fileArray = Array.from(files);
+	const uploadFilesWithPaths = async (files: ResolvedFile[]): Promise<void> => {
 		try {
-			for (const [i, file] of fileArray.entries()) {
-				const relativePath =
-					file.webkitRelativePath !== '' ? file.webkitRelativePath : file.name;
+			for (const [i, {file, relativePath}] of files.entries()) {
 				const key = prefix + relativePath;
 				const contentType = file.type !== '' ? file.type : undefined;
 				const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
 
 				setUploadProgress({
 					done: i,
-					total: fileArray.length,
+					total: files.length,
 					filename: file.name,
 					fileProgress: 0,
 				});
@@ -210,7 +209,7 @@ export const ObjectBrowserPage = () => {
 							(loaded) => {
 								setUploadProgress({
 									done: i,
-									total: fileArray.length,
+									total: files.length,
 									filename: file.name,
 									fileProgress: Math.round(
 										((bytesUploaded + loaded) / Math.max(file.size, 1)) * 100,
@@ -238,6 +237,21 @@ export const ObjectBrowserPage = () => {
 			setRefreshKey((k) => k + 1);
 		}
 	};
+
+	const uploadFiles = async (files: FileList): Promise<void> => {
+		const resolved: ResolvedFile[] = Array.from(files).map((file) => ({
+			file,
+			relativePath: file.webkitRelativePath !== '' ? file.webkitRelativePath : file.name,
+		}));
+		await uploadFilesWithPaths(resolved);
+	};
+
+	const {isDragging, dragProps} = useDragUpload({
+		disabled: uploadProgress !== null,
+		onDrop: (files) => {
+			void uploadFilesWithPaths(files);
+		},
+	});
 
 	const selectedObject =
 		selectedKey !== null ? objects.find((o) => o.key === selectedKey) : undefined;
@@ -344,6 +358,8 @@ export const ObjectBrowserPage = () => {
 							pageSize={pageSize}
 							selectedKey={selectedKey}
 							uploadProgress={uploadProgress}
+							isDragging={isDragging}
+							dragProps={dragProps}
 							onNavigate={navigateTo}
 							onSelectObject={selectObject}
 							onPageChange={handlePageChange}
@@ -374,6 +390,8 @@ export const ObjectBrowserPage = () => {
 						pageSize={pageSize}
 						selectedKey={selectedKey}
 						uploadProgress={uploadProgress}
+						isDragging={isDragging}
+						dragProps={dragProps}
 						onNavigate={navigateTo}
 						onSelectObject={selectObject}
 						onPageChange={handlePageChange}
