@@ -70,6 +70,15 @@ export const PaginationControls = ({
 						}
 					}}
 					style={{width: 110}}
+					styles={{
+						dropdown: {
+							background: 'var(--bg-surface)',
+							border: '1px solid var(--border-strong)',
+						},
+						option: {
+							color: 'var(--text-primary)',
+						},
+					}}
 					aria-label="Page size"
 				/>
 				<Group gap={4}>

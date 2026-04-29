@@ -216,4 +216,20 @@ describe('ObjectBrowser', () => {
 			expect(screen.queryByLabelText('Drop to upload')).not.toBeInTheDocument();
 		});
 	});
+
+	it('calculate size button appears for folders and shows size after fetch', async () => {
+		server.use(
+			http.get('/api/buckets/:bucket/folder-size', () => HttpResponse.json({size: 512})),
+		);
+		const user = userEvent.setup();
+		renderPage('/buckets/my-bucket');
+		await waitFor(() => screen.getByText('docs/'));
+
+		const calcBtn = screen.getByRole('button', {name: /calculate size of docs\//i});
+		await user.click(calcBtn);
+
+		await waitFor(() => {
+			expect(screen.getByText('512 B')).toBeInTheDocument();
+		});
+	});
 });

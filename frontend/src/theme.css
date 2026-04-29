@@ -1,46 +1,71 @@
 :root {
 	/* Layout */
 	--rail-width: 264px;
-	--rail-bg: #0c0f0d;
+	--rail-bg: #0d1018;
 
 	/* Surface palette */
-	--bg-base: #0e1010;
-	--bg-surface: #161a18;
-	--bg-hover: #1d211f;
+	--bg-base: #0f1120;
+	--bg-surface: #161b2c;
+	--bg-hover: #1e2338;
 
 	/* Borders */
-	--border-color: rgba(242, 255, 244, 0.06);
-	--border-strong: rgba(242, 255, 244, 0.1);
+	--border-color: rgba(140, 195, 255, 0.07);
+	--border-strong: rgba(140, 195, 255, 0.12);
 
 	/* Text */
-	--text-primary: #ecedec;
-	--text-muted: rgba(229, 253, 245, 0.46);
-	--text-muted2: rgba(229, 253, 245, 0.6);
+	--text-primary: #dde8f5;
+	--text-muted: rgba(160, 200, 255, 0.5);
+	--text-muted2: rgba(160, 200, 255, 0.65);
 
 	/* Danger */
 	--danger: #ff9f94;
 
 	/* Accent — dynamic via Tweaks hue slider */
-	--accent-h: 150;
-	--accent: hsl(var(--accent-h), 52%, 35%);
-	--accent-hover: hsl(var(--accent-h), 52%, 42%);
-	--accent-dim: hsl(var(--accent-h), 52%, 10%);
-	--accent-text: hsl(var(--accent-h), 52%, 62%);
-	--accent-border: hsl(var(--accent-h), 30%, 22%);
+	--accent-h: 148;
+	--accent: hsl(var(--accent-h), 82%, 40%);
+	--accent-hover: hsl(var(--accent-h), 82%, 48%);
+	--accent-dim: hsl(var(--accent-h), 82%, 10%);
+	--accent-text: hsl(var(--accent-h), 100%, 68%);
+	--accent-border: hsl(var(--accent-h), 45%, 24%);
 
 	/* Typography */
 	--font-display: 'Inter', system-ui, -apple-system, sans-serif;
 	--font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 
-/* Bridge our accent to Mantine's custom color so Mantine components use it */
-[data-mantine-color-scheme='dark'] {
+/* Bridge our theme tokens to Mantine's CSS variables.
+   :root:root[...] has higher specificity than Mantine's injected :root[...] so our
+   overrides always win regardless of document order. */
+:root:root[data-mantine-color-scheme='dark'] {
 	--mantine-color-body: var(--bg-base);
+
+	/* Accent */
 	--mantine-color-kgreen-filled: var(--accent);
 	--mantine-color-kgreen-filled-hover: var(--accent-hover);
 	--mantine-color-kgreen-light: var(--accent-dim);
 	--mantine-color-kgreen-light-hover: var(--accent-dim);
 	--mantine-color-kgreen-light-color: var(--accent-text);
+
+	/* Default-variant elements (ActionIcon, Button, Select input, etc.) */
+	--mantine-color-default: var(--bg-surface);
+	--mantine-color-default-hover: var(--bg-hover);
+	--mantine-color-default-color: var(--text-primary);
+	--mantine-color-default-border: var(--border-strong);
+}
+
+/* Skeleton shimmer — override Mantine's light-gray pulse to match our navy palette */
+[data-mantine-color-scheme='dark'] .mantine-Skeleton-root::after {
+	background-color: var(--bg-surface);
+}
+
+/* Combobox (Select) dropdown option states */
+:root:root[data-mantine-color-scheme='dark'] .mantine-Combobox-option[data-combobox-selected] {
+	background: var(--accent-dim);
+	color: var(--accent-text);
+}
+
+:root:root[data-mantine-color-scheme='dark'] .mantine-Combobox-option[data-combobox-hovered] {
+	background: var(--bg-hover);
 }
 
 *,

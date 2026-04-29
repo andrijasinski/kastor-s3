@@ -1,7 +1,19 @@
 import {useEffect, useRef, useState} from 'react';
-import {Button, Group, Skeleton, Stack, Table, Text, TextInput, Tooltip} from '@mantine/core';
+import {
+	ActionIcon,
+	Button,
+	Group,
+	Loader,
+	Skeleton,
+	Stack,
+	Table,
+	Text,
+	TextInput,
+	Tooltip,
+} from '@mantine/core';
 import {notifications} from '@mantine/notifications';
 import {
+	IconCalculator,
 	IconDownload,
 	IconFile,
 	IconFolder,
@@ -46,6 +58,9 @@ interface ObjectBrowserProps {
 	onFolderUploadClick: () => void;
 	onDownloadFolder: (prefix: string) => Promise<void>;
 	onDeleteFolder: (prefix: string) => void;
+	folderSizes: Map<string, number>;
+	calculatingFolders: Set<string>;
+	onCalculateFolderSize: (prefix: string) => void;
 }
 
 const crumbSep: React.CSSProperties = {
@@ -99,6 +114,9 @@ export const ObjectBrowser = ({
 	onFolderUploadClick,
 	onDownloadFolder,
 	onDeleteFolder,
+	folderSizes,
+	calculatingFolders,
+	onCalculateFolderSize,
 }: ObjectBrowserProps) => {
 	const [viewMode, setViewMode] = useState<'table' | 'gallery'>('table');
 	const [filterText, setFilterText] = useState('');
@@ -468,16 +486,13 @@ export const ObjectBrowser = ({
 					>
 						<Table.Thead>
 							<Table.Tr style={{background: 'var(--bg-base)'}}>
-								<Table.Th style={{...thStyle, width: '42%', paddingTop: 14}}>
+								<Table.Th style={{...thStyle, width: '55%', paddingTop: 14}}>
 									Name
-								</Table.Th>
-								<Table.Th style={{...thStyle, width: '13%', paddingTop: 14}}>
-									Type
 								</Table.Th>
 								<Table.Th
 									style={{
 										...thStyle,
-										width: '13%',
+										width: '16%',
 										textAlign: 'right',
 										paddingTop: 14,
 									}}
@@ -487,7 +502,7 @@ export const ObjectBrowser = ({
 								<Table.Th style={{...thStyle, width: '22%', paddingTop: 14}}>
 									Last Modified
 								</Table.Th>
-								<Table.Th style={{...thStyle, width: '10%', paddingTop: 14}} />
+								<Table.Th style={{...thStyle, width: '7%', paddingTop: 14}} />
 							</Table.Tr>
 						</Table.Thead>
 						<Table.Tbody>
@@ -498,6 +513,9 @@ export const ObjectBrowser = ({
 									prefix={prefix}
 									bucket={bucket}
 									isSelected={obj.key === selectedKey}
+									folderSizes={folderSizes}
+									calculatingFolders={calculatingFolders}
+									onCalculateFolderSize={onCalculateFolderSize}
 									onNavigate={onNavigate}
 									onSelectObject={onSelectObject}
 								/>
@@ -527,6 +545,9 @@ interface ObjectRowProps {
 	prefix: string;
 	bucket: string;
 	isSelected: boolean;
+	folderSizes: Map<string, number>;
+	calculatingFolders: Set<string>;
+	onCalculateFolderSize: (prefix: string) => void;
 	onNavigate: (p: string) => void;
 	onSelectObject: (key: string | null) => void;
 }
@@ -536,12 +557,14 @@ const ObjectRow = ({
 	prefix,
 	bucket,
 	isSelected,
+	folderSizes,
+	calculatingFolders,
+	onCalculateFolderSize,
 	onNavigate,
 	onSelectObject,
 }: ObjectRowProps) => {
 	const [hovered, setHovered] = useState(false);
 	const name = obj.key.slice(prefix.length);
-	const ext = obj.isPrefix ? '' : (obj.key.split('.').pop()?.toUpperCase() ?? '');
 
 	const rowBg = isSelected
 		? 'var(--accent-dim)'
@@ -629,40 +652,50 @@ const ObjectRow = ({
 				)}
 			</Table.Td>
 
-			{/* Type */}
-			<Table.Td style={tdBase}>
-				{obj.isPrefix ? (
-					<span style={{color: 'var(--text-muted)', fontSize: 14}}>—</span>
-				) : (
-					<span
-						style={{
-							background: 'rgba(242,255,244,0.04)',
-							border: '1px solid var(--border-color)',
-							borderRadius: 3,
-							padding: '2px 7px',
-							fontSize: 11,
-							color: 'var(--text-muted2)',
-							fontFamily: 'var(--font-mono)',
-						}}
-					>
-						{obj.contentType !== undefined
-							? obj.contentType.split('/').pop()?.toUpperCase()
-							: ext}
-					</span>
-				)}
-			</Table.Td>
-
 			{/* Size */}
 			<Table.Td style={{...tdBase, textAlign: 'right'}}>
-				<span
-					style={{
-						fontSize: 14,
-						color: 'var(--text-muted)',
-						fontFeatureSettings: '"tnum"',
-					}}
-				>
-					{obj.isPrefix ? '—' : formatSize(obj.size)}
-				</span>
+				<div style={{display: 'flex', justifyContent: 'flex-end', alignItems: 'center'}}>
+					{obj.isPrefix ? (
+						calculatingFolders.has(obj.key) ? (
+							<Loader size="xs" />
+						) : folderSizes.has(obj.key) ? (
+							<span
+								style={{
+									fontSize: 14,
+									color: 'var(--text-muted)',
+									fontFeatureSettings: '"tnum"',
+								}}
+							>
+								{formatSize(folderSizes.get(obj.key)!)}
+							</span>
+						) : (
+							<Tooltip label="Calculate size">
+								<ActionIcon
+									variant="subtle"
+									color="gray"
+									size="xs"
+									onClick={(e) => {
+										e.stopPropagation();
+										onCalculateFolderSize(obj.key);
+									}}
+									aria-label={`Calculate size of ${name}`}
+								>
+									<IconCalculator size={13} />
+								</ActionIcon>
+							</Tooltip>
+						)
+					) : (
+						<span
+							style={{
+								fontSize: 14,
+								color: 'var(--text-muted)',
+								fontFeatureSettings: '"tnum"',
+							}}
+						>
+							{formatSize(obj.size)}
+						</span>
+					)}
+				</div>
 			</Table.Td>
 
 			{/* Last Modified */}

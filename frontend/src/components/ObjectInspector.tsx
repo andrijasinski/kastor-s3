@@ -32,9 +32,8 @@ const loadingTextBase: React.CSSProperties = {
 
 const LOADING_TEXT_VARIANTS = {
 	subtle: {
-		c: 'white',
 		size: 'xs' as const,
-		style: loadingTextBase,
+		style: {...loadingTextBase, color: 'var(--accent-text)'},
 	},
 	elegant: {
 		c: 'white',

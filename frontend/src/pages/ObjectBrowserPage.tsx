@@ -8,6 +8,7 @@ import {
 	abortMultipartUpload,
 	completeMultipartUpload,
 	createMultipartUpload,
+	fetchFolderSize,
 	fetchObjects,
 	uploadPart,
 } from '../api/client';
@@ -42,6 +43,8 @@ export const ObjectBrowserPage = () => {
 	const [loading, setLoading] = useState(true);
 	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 	const [refreshKey, setRefreshKey] = useState(0);
+	const [folderSizes, setFolderSizes] = useState<Map<string, number>>(new Map());
+	const [calculatingFolders, setCalculatingFolders] = useState<Set<string>>(new Set());
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const folderInputRef = useRef<HTMLInputElement>(null);
@@ -165,6 +168,26 @@ export const ObjectBrowserPage = () => {
 	const handleDeleteObject = (key: string) => {
 		selectObject(null);
 		setRefreshKey((k) => k + 1);
+	};
+
+	const calculateFolderSize = async (folderPrefix: string): Promise<void> => {
+		setCalculatingFolders((prev) => new Set(prev).add(folderPrefix));
+		try {
+			const size = await fetchFolderSize(bucket, folderPrefix);
+			setFolderSizes((prev) => new Map(prev).set(folderPrefix, size));
+		} catch (err) {
+			notifications.show({
+				title: 'Failed to calculate folder size',
+				message: err instanceof Error ? err.message : 'Unknown error',
+				color: 'red',
+			});
+		} finally {
+			setCalculatingFolders((prev) => {
+				const next = new Set(prev);
+				next.delete(folderPrefix);
+				return next;
+			});
+		}
 	};
 
 	const handleDownloadFolder = async (folderPrefix: string): Promise<void> => {
@@ -372,6 +395,11 @@ export const ObjectBrowserPage = () => {
 							}}
 							onDownloadFolder={handleDownloadFolder}
 							onDeleteFolder={handleDeleteFolder}
+							folderSizes={folderSizes}
+							calculatingFolders={calculatingFolders}
+							onCalculateFolderSize={(p) => {
+								void calculateFolderSize(p);
+							}}
 						/>
 					</div>
 				</div>
@@ -404,6 +432,11 @@ export const ObjectBrowserPage = () => {
 						}}
 						onDownloadFolder={handleDownloadFolder}
 						onDeleteFolder={handleDeleteFolder}
+						folderSizes={folderSizes}
+						calculatingFolders={calculatingFolders}
+						onCalculateFolderSize={(p) => {
+							void calculateFolderSize(p);
+						}}
 					/>
 				</div>
 			)}
