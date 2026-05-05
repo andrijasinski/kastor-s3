@@ -35,12 +35,33 @@ Open `http://localhost:7778`.
 
 ### Environment variables
 
-| Variable               | Description                |
-| ---------------------- | -------------------------- |
-| `S3_ACCESS_KEY_ID`     | S3 access key              |
-| `S3_SECRET_ACCESS_KEY` | S3 secret key              |
-| `S3_ENDPOINT`          | S3-compatible endpoint URL |
-| `S3_REGION`            | S3 region                  |
+| Variable               | Required | Description                                                |
+| ---------------------- | -------- | ---------------------------------------------------------- |
+| `S3_ACCESS_KEY_ID`     | Yes      | S3 access key                                              |
+| `S3_SECRET_ACCESS_KEY` | Yes      | S3 secret key                                              |
+| `S3_ENDPOINT`          | Yes      | S3-compatible endpoint URL                                 |
+| `S3_REGION`            | Yes      | S3 region                                                  |
+| `AUTH_USERNAME`        | No       | Basic Auth username (required when `AUTH_PASSWORD` is set) |
+| `AUTH_PASSWORD`        | No       | Basic Auth password — enables password protection when set |
+
+### Password protection
+
+To restrict access with HTTP Basic Auth, set both `AUTH_USERNAME` and `AUTH_PASSWORD`:
+
+```bash
+docker run -p 7778:80 \
+  -e S3_ACCESS_KEY_ID=<key> \
+  -e S3_SECRET_ACCESS_KEY=<secret> \
+  -e S3_ENDPOINT=<endpoint> \
+  -e S3_REGION=<region> \
+  -e AUTH_USERNAME=<username> \
+  -e AUTH_PASSWORD=<password> \
+  projectionist/kastor-s3
+```
+
+When `AUTH_PASSWORD` is set the browser will prompt for credentials. All pages and API calls are protected. When neither variable is set the app is publicly accessible, as before.
+
+> Basic Auth sends credentials on every request as a Base64-encoded header. Use it behind HTTPS only (e.g. Caddy, Traefik, or a cloud load balancer in front of the container).
 
 ## Features
 
@@ -83,9 +104,12 @@ bun run fix
 ## Testing
 
 ```bash
-# Frontend (Vitest)
+# All tests (API + frontend + entrypoint shell tests)
+bun run test
+
+# Frontend only (Vitest)
 cd frontend && bun run test
 
-# Backend (Bun test runner)
+# Backend only (Bun test runner)
 cd api && bun test
 ```

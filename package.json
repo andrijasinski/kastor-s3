@@ -12,7 +12,7 @@
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"typecheck": "bun run --cwd api typecheck && bun run --cwd frontend typecheck",
-		"test": "bun run --cwd api test && bun run --cwd frontend test",
+		"test": "bun run --cwd api test && bun run --cwd frontend test && sh tests/entrypoint.test.sh",
 		"fix": "bun run lint:fix && bun run format",
 		"feedback": "bun run typecheck && bun run fix && bun run test"
 	},

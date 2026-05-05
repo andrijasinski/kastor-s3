@@ -14,6 +14,30 @@ if [ -n "$missing" ]; then
     exit 1
 fi
 
+if [ -n "$AUTH_PASSWORD" ] && [ -z "$AUTH_USERNAME" ]; then
+    echo "Error: AUTH_PASSWORD is set but AUTH_USERNAME is not" >&2
+    exit 1
+fi
+
+if [ -n "$AUTH_USERNAME" ] && [ -z "$AUTH_PASSWORD" ]; then
+    echo "Error: AUTH_USERNAME is set but AUTH_PASSWORD is not" >&2
+    exit 1
+fi
+
+if [ -n "$AUTH_PASSWORD" ]; then
+    _auth_username="$AUTH_USERNAME"
+    _auth_username_clean="$(printf '%s' "$_auth_username" | tr -d ':\r\n')"
+    if [ "$_auth_username_clean" != "$_auth_username" ]; then
+        echo "Error: AUTH_USERNAME must not contain ':', newline, or carriage return" >&2
+        exit 1
+    fi
+    (umask 027; printf '%s:%s\n' "$_auth_username" "$(openssl passwd -apr1 "$AUTH_PASSWORD")" > /etc/nginx/.htpasswd)
+    chown root:nginx /etc/nginx/.htpasswd
+    cp /etc/nginx/conf.d/nginx.conf.auth /etc/nginx/conf.d/default.conf
+else
+    cp /etc/nginx/conf.d/nginx.conf.noauth /etc/nginx/conf.d/default.conf
+fi
+
 cd /app/api
 bun run src/index.ts &
 BUN_PID=$!
