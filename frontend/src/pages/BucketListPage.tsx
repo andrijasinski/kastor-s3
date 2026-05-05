@@ -1,8 +1,9 @@
 import {useNavigate} from 'react-router-dom';
-import {Skeleton, Text} from '@mantine/core';
-import {IconFolder} from '@tabler/icons-react';
+import {Progress, Skeleton, Text, UnstyledButton} from '@mantine/core';
+import {IconFolder, IconMenu2} from '@tabler/icons-react';
 import type {Bucket, BucketStats} from '@shared/types';
 import {useBuckets} from '../contexts/BucketsContext';
+import {useMobile} from '../contexts/MobileContext';
 import {formatDate, formatSize} from '../utils/format';
 
 interface BucketCardProps {
@@ -30,7 +31,7 @@ const statValue: React.CSSProperties = {
 	lineHeight: 1,
 };
 
-const BucketCard = ({bucket, stats, statsLoading, onClick}: BucketCardProps) => (
+const DesktopBucketCard = ({bucket, stats, statsLoading, onClick}: BucketCardProps) => (
 	<button
 		onClick={onClick}
 		aria-label={`Open bucket ${bucket.name}`}
@@ -144,9 +145,232 @@ const BucketCard = ({bucket, stats, statsLoading, onClick}: BucketCardProps) => 
 	</button>
 );
 
+const MobileBucketRow = ({bucket, stats, statsLoading, onClick}: BucketCardProps) => (
+	<UnstyledButton
+		onClick={onClick}
+		aria-label={`Open bucket ${bucket.name}`}
+		style={{
+			display: 'flex',
+			alignItems: 'center',
+			gap: 12,
+			padding: '14px 16px',
+			background: 'var(--bg-surface)',
+			border: '1px solid var(--border-color)',
+			borderRadius: 10,
+			width: '100%',
+			minHeight: 56,
+		}}
+	>
+		<div
+			style={{
+				width: 40,
+				height: 40,
+				borderRadius: 8,
+				background: 'var(--accent-dim)',
+				display: 'flex',
+				alignItems: 'center',
+				justifyContent: 'center',
+				flexShrink: 0,
+			}}
+		>
+			<IconFolder size={20} style={{color: 'var(--accent-text)'}} />
+		</div>
+		<div style={{flex: 1, minWidth: 0}}>
+			<Text
+				fw={600}
+				truncate
+				style={{fontSize: 15, color: 'var(--text-primary)', lineHeight: 1.3}}
+			>
+				{bucket.name}
+			</Text>
+			<Text style={{fontSize: 13, color: 'var(--text-muted)', marginTop: 2}}>
+				{statsLoading
+					? '…'
+					: stats !== undefined
+						? `${stats.objectCount.toLocaleString()} objects · ${formatSize(stats.totalSize)}`
+						: '—'}
+			</Text>
+		</div>
+		<span style={{color: 'var(--text-muted)', fontSize: 18, flexShrink: 0}}>›</span>
+	</UnstyledButton>
+);
+
+const MobileBucketListPage = () => {
+	const navigate = useNavigate();
+	const {buckets, statsMap, bucketsLoading} = useBuckets();
+	const {openDrawer} = useMobile();
+
+	const totalObjects = buckets.reduce(
+		(sum, b) => sum + (statsMap.get(b.name)?.objectCount ?? 0),
+		0,
+	);
+	const totalSize = buckets.reduce((sum, b) => sum + (statsMap.get(b.name)?.totalSize ?? 0), 0);
+
+	return (
+		<div
+			style={{
+				display: 'flex',
+				flexDirection: 'column',
+				height: '100%',
+				background: 'var(--bg-base)',
+			}}
+		>
+			{/* Mobile top header */}
+			<div
+				style={{
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'space-between',
+					padding: '0 16px',
+					height: 56,
+					borderBottom: '1px solid var(--border-color)',
+					background: 'var(--bg-base)',
+					flexShrink: 0,
+				}}
+			>
+				<UnstyledButton
+					onClick={openDrawer}
+					aria-label="Open navigation drawer"
+					style={{
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						minWidth: 44,
+						minHeight: 44,
+						color: 'var(--text-primary)',
+					}}
+				>
+					<IconMenu2 size={22} />
+				</UnstyledButton>
+				<Text
+					fw={650}
+					style={{
+						fontFamily: 'var(--font-display)',
+						fontSize: 18,
+						letterSpacing: '-0.02em',
+						color: 'var(--text-primary)',
+					}}
+				>
+					kastor
+				</Text>
+				<div style={{width: 44}} />
+			</div>
+
+			{/* Scrollable content */}
+			<div style={{flex: 1, overflowY: 'auto', padding: '16px 16px 24px'}}>
+				{/* Storage card */}
+				<div
+					style={{
+						background: 'var(--bg-surface)',
+						border: '1px solid var(--border-color)',
+						borderRadius: 12,
+						padding: '16px 20px',
+						marginBottom: 24,
+					}}
+				>
+					<Text
+						style={{
+							fontSize: 11,
+							fontWeight: 650,
+							letterSpacing: '0.09em',
+							textTransform: 'uppercase',
+							color: 'var(--accent-text)',
+							marginBottom: 8,
+						}}
+					>
+						Storage
+					</Text>
+					<Text
+						fw={700}
+						style={{
+							fontFamily: 'var(--font-display)',
+							fontSize: 36,
+							letterSpacing: '-0.02em',
+							color: 'var(--text-primary)',
+							lineHeight: 1,
+							fontFeatureSettings: '"tnum"',
+						}}
+					>
+						{formatSize(totalSize)}
+					</Text>
+					<Text
+						style={{
+							fontSize: 13,
+							color: 'var(--text-muted)',
+							marginTop: 4,
+							fontFeatureSettings: '"tnum"',
+						}}
+					>
+						{totalObjects.toLocaleString()} objects · {buckets.length}{' '}
+						{buckets.length === 1 ? 'bucket' : 'buckets'}
+					</Text>
+					<Progress
+						value={totalSize > 0 ? Math.min(100, (totalSize / 1099511627776) * 100) : 0}
+						size={3}
+						color="kgreen"
+						mt={12}
+						styles={{root: {background: 'var(--border-strong)'}}}
+					/>
+				</div>
+
+				{/* Buckets section */}
+				<Text
+					style={{
+						fontSize: 11,
+						fontWeight: 650,
+						letterSpacing: '0.09em',
+						textTransform: 'uppercase',
+						color: 'var(--text-muted)',
+						marginBottom: 12,
+					}}
+				>
+					Buckets
+				</Text>
+
+				{bucketsLoading ? (
+					<div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
+						{[1, 2, 3].map((n) => (
+							<Skeleton key={n} height={72} radius={10} />
+						))}
+					</div>
+				) : buckets.length === 0 ? (
+					<div style={{padding: '60px 0', textAlign: 'center'}}>
+						<IconFolder
+							size={48}
+							style={{color: 'var(--text-muted)', marginBottom: 12}}
+						/>
+						<Text style={{color: 'var(--text-muted)', fontSize: 15}}>
+							No buckets found
+						</Text>
+					</div>
+				) : (
+					<div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
+						{buckets.map((bucket) => (
+							<MobileBucketRow
+								key={bucket.name}
+								bucket={bucket}
+								stats={statsMap.get(bucket.name)}
+								statsLoading={!statsMap.has(bucket.name)}
+								onClick={() => {
+									void navigate(`/buckets/${encodeURIComponent(bucket.name)}`);
+								}}
+							/>
+						))}
+					</div>
+				)}
+			</div>
+		</div>
+	);
+};
+
 export const BucketListPage = () => {
 	const navigate = useNavigate();
 	const {buckets, statsMap, bucketsLoading} = useBuckets();
+	const {isMobile} = useMobile();
+
+	if (isMobile) {
+		return <MobileBucketListPage />;
+	}
 
 	if (bucketsLoading) {
 		return (
@@ -226,7 +450,7 @@ export const BucketListPage = () => {
 						}}
 					>
 						{buckets.map((bucket) => (
-							<BucketCard
+							<DesktopBucketCard
 								key={bucket.name}
 								bucket={bucket}
 								stats={statsMap.get(bucket.name)}
