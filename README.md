@@ -12,11 +12,11 @@ A personal web-based file manager for S3-compatible storage. Browse buckets, upl
 
 **Desktop** — full controls: upload, download, delete, gallery view, image preview
 
-![Desktop demo](https://github.com/user-attachments/assets/c26f924d-8904-4fb4-b2b6-ac0a64e57e29)
+![Desktop demo](./demo/full-screen.gif)
 
 **Mobile** — responsive read-only view for browsing on the go
 
-![Mobile demo](https://github.com/user-attachments/assets/df8657ff-99de-47c9-82f0-2704dd77eef6)
+![Mobile demo](./demo/mobile.gif)
 
 ## Quick start
 
