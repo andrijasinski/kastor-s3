@@ -8,23 +8,15 @@
 
 A personal web-based file manager for S3-compatible storage. Browse buckets, upload and download files and delete objects — all from a clean browser UI.
 
-## Screenshots
+## Demo
 
-**Bucket overview** — object count and total size at a glance
+**Desktop** — full controls: upload, download, delete, gallery view, image preview
 
-![Bucket list](./screenshots/buckets.png)
+<video src="./demo/full-screen.mp4" controls width="800"></video>
 
-**Browse files** — navigate folders with breadcrumbs, download or delete individual objects
+**Mobile** — responsive read-only view for browsing on the go
 
-![Table view](./screenshots/tableview.png)
-
-**Gallery view** — switch to a visual grid for image-heavy folders
-
-![Gallery view](./screenshots/galleryview.png)
-
-**Image preview** — inline preview with file metadata and prev/next navigation
-
-![Image preview](./screenshots/imagepreview.png)
+<video src="./demo/mobile.mp4" controls width="360"></video>
 
 ## Quick start
 
