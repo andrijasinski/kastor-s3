@@ -14,6 +14,7 @@ import {
 import {notifications} from '@mantine/notifications';
 import {
 	IconCalculator,
+	IconChevronLeft,
 	IconDownload,
 	IconFile,
 	IconFolder,
@@ -27,6 +28,7 @@ import streamSaver from 'streamsaver';
 import type {S3Object} from '@shared/types';
 import {buildBreadcrumbSegments} from '../utils/breadcrumbs';
 import {formatDate, formatSize} from '../utils/format';
+import {useMobile} from '../contexts/MobileContext';
 import {DragOverlay} from './DragOverlay';
 import {GalleryView} from './GalleryView';
 import {PaginationControls} from './Pagination';
@@ -61,6 +63,7 @@ interface ObjectBrowserProps {
 	folderSizes: Map<string, number>;
 	calculatingFolders: Set<string>;
 	onCalculateFolderSize: (prefix: string) => void;
+	onGoBack?: (() => void) | undefined;
 }
 
 const crumbSep: React.CSSProperties = {
@@ -94,6 +97,15 @@ const iconBtn = (extra: React.CSSProperties = {}): React.CSSProperties => ({
 	...extra,
 });
 
+const mobileSectionLabel: React.CSSProperties = {
+	fontSize: 11,
+	fontWeight: 650,
+	letterSpacing: '0.09em',
+	textTransform: 'uppercase',
+	color: 'var(--text-muted)',
+	padding: '14px 16px 6px',
+};
+
 export const ObjectBrowser = ({
 	bucket,
 	prefix,
@@ -117,7 +129,9 @@ export const ObjectBrowser = ({
 	folderSizes,
 	calculatingFolders,
 	onCalculateFolderSize,
+	onGoBack,
 }: ObjectBrowserProps) => {
+	const {isMobile} = useMobile();
 	const [viewMode, setViewMode] = useState<'table' | 'gallery'>('table');
 	const [filterText, setFilterText] = useState('');
 	const [deleteFolderConfirm, setDeleteFolderConfirm] = useState(false);
@@ -186,6 +200,38 @@ export const ObjectBrowser = ({
 			setDownloadingFolder(false);
 		}
 	};
+
+	if (isMobile) {
+		return (
+			<MobileObjectBrowser
+				bucket={bucket}
+				prefix={prefix}
+				objects={visibleObjects}
+				totalCount={totalCount}
+				loading={loading}
+				page={page}
+				pageSize={pageSize}
+				selectedKey={selectedKey}
+				uploadProgress={uploadProgress}
+				crumbs={crumbs}
+				viewMode={viewMode}
+				filterText={filterText}
+				isDragging={isDragging}
+				dragProps={dragProps}
+				onNavigate={onNavigate}
+				onSelectObject={onSelectObject}
+				onPageChange={onPageChange}
+				onPageSizeChange={onPageSizeChange}
+				onUploadClick={onUploadClick}
+				onSetViewMode={setViewMode}
+				onSetFilterText={setFilterText}
+				onGoBack={onGoBack}
+				folderSizes={folderSizes}
+				calculatingFolders={calculatingFolders}
+				onCalculateFolderSize={onCalculateFolderSize}
+			/>
+		);
+	}
 
 	return (
 		<div
@@ -537,6 +583,518 @@ export const ObjectBrowser = ({
 				)}
 			</div>
 		</div>
+	);
+};
+
+interface MobileObjectBrowserProps {
+	bucket: string;
+	prefix: string;
+	objects: S3Object[];
+	totalCount: number;
+	loading: boolean;
+	page: number;
+	pageSize: number;
+	selectedKey: string | null;
+	uploadProgress: UploadProgress | null;
+	crumbs: Array<{label: string; prefix: string}>;
+	viewMode: 'table' | 'gallery';
+	filterText: string;
+	isDragging: boolean;
+	dragProps: React.HTMLAttributes<HTMLDivElement>;
+	onNavigate: (prefix: string) => void;
+	onSelectObject: (key: string | null) => void;
+	onPageChange: (page: number) => void;
+	onPageSizeChange: (size: number) => void;
+	onUploadClick: () => void;
+	onSetViewMode: (mode: 'table' | 'gallery') => void;
+	onSetFilterText: (text: string) => void;
+	onGoBack?: (() => void) | undefined;
+	folderSizes: Map<string, number>;
+	calculatingFolders: Set<string>;
+	onCalculateFolderSize: (prefix: string) => void;
+}
+
+const MobileObjectBrowser = ({
+	bucket,
+	prefix,
+	objects,
+	totalCount,
+	loading,
+	page,
+	pageSize,
+	selectedKey,
+	uploadProgress,
+	crumbs,
+	viewMode,
+	filterText,
+	isDragging,
+	dragProps,
+	onNavigate,
+	onSelectObject,
+	onPageChange,
+	onPageSizeChange,
+	onUploadClick,
+	onSetViewMode,
+	onSetFilterText,
+	onGoBack,
+	folderSizes,
+	calculatingFolders,
+	onCalculateFolderSize,
+}: MobileObjectBrowserProps) => {
+	const [showFilter, setShowFilter] = useState(false);
+	const filterRef = useRef<HTMLInputElement>(null);
+	const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		return () => {
+			if (focusTimeoutRef.current !== null) {
+				clearTimeout(focusTimeoutRef.current);
+			}
+		};
+	}, []);
+
+	const folders = objects.filter((o) => o.isPrefix);
+	const files = objects.filter((o) => !o.isPrefix);
+
+	const parentLabel = crumbs.length > 1 ? (crumbs[crumbs.length - 2]?.label ?? bucket) : null;
+	const currentLabel = crumbs[crumbs.length - 1]?.label ?? bucket;
+
+	return (
+		<div
+			data-testid="object-browser"
+			style={{
+				display: 'flex',
+				flexDirection: 'column',
+				height: '100%',
+				position: 'relative',
+				background: 'var(--bg-base)',
+			}}
+			{...dragProps}
+		>
+			<DragOverlay show={isDragging} />
+
+			{/* Mobile top header */}
+			<div
+				style={{
+					display: 'flex',
+					alignItems: 'center',
+					gap: 8,
+					padding: '0 8px 0 4px',
+					height: 56,
+					borderBottom: '1px solid var(--border-color)',
+					background: 'var(--bg-base)',
+					flexShrink: 0,
+				}}
+			>
+				<button
+					onClick={
+						prefix !== ''
+							? () => onNavigate(crumbs[crumbs.length - 2]?.prefix ?? '')
+							: (onGoBack ?? undefined)
+					}
+					aria-label="Go back"
+					style={{
+						background: 'none',
+						border: 'none',
+						cursor: 'pointer',
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						minWidth: 44,
+						minHeight: 44,
+						color: 'var(--accent-text)',
+						flexShrink: 0,
+					}}
+				>
+					<IconChevronLeft size={22} />
+				</button>
+
+				<div style={{flex: 1, minWidth: 0}}>
+					<Text
+						fw={600}
+						truncate
+						style={{
+							fontFamily: 'var(--font-display)',
+							fontSize: 15,
+							color: 'var(--text-primary)',
+							lineHeight: 1.2,
+						}}
+					>
+						{bucket}
+					</Text>
+					{prefix !== '' && (
+						<Text
+							truncate
+							style={{
+								fontSize: 12,
+								color: 'var(--text-muted)',
+								lineHeight: 1.2,
+							}}
+						>
+							{parentLabel !== null && parentLabel !== bucket
+								? `${parentLabel} / ${currentLabel}`
+								: currentLabel}
+						</Text>
+					)}
+				</div>
+
+				<button
+					onClick={() => {
+						setShowFilter((v) => !v);
+						if (focusTimeoutRef.current !== null) {
+							clearTimeout(focusTimeoutRef.current);
+						}
+						focusTimeoutRef.current = setTimeout(() => filterRef.current?.focus(), 50);
+					}}
+					aria-label="Toggle search"
+					style={{
+						background: 'none',
+						border: 'none',
+						cursor: 'pointer',
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						minWidth: 44,
+						minHeight: 44,
+						color: 'var(--text-muted)',
+						flexShrink: 0,
+					}}
+				>
+					<IconSearch size={18} />
+				</button>
+			</div>
+
+			{/* Filter bar (when shown) */}
+			{showFilter && (
+				<div
+					style={{
+						padding: '8px 12px',
+						background: 'var(--bg-base)',
+						borderBottom: '1px solid var(--border-color)',
+					}}
+				>
+					<TextInput
+						ref={filterRef}
+						size="sm"
+						placeholder="Filter files…"
+						leftSection={<IconSearch size={13} />}
+						value={filterText}
+						onChange={(e) => {
+							onSetFilterText(e.currentTarget.value);
+						}}
+						styles={{
+							input: {
+								background: 'var(--bg-surface)',
+								border: '1px solid var(--border-color)',
+								color: 'var(--text-primary)',
+								fontSize: 14,
+							},
+						}}
+						aria-label="Filter visible"
+					/>
+				</div>
+			)}
+
+			{/* View toggle + count bar */}
+			<div
+				style={{
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'space-between',
+					padding: '8px 16px',
+					borderBottom: '1px solid var(--border-color)',
+					background: 'var(--bg-base)',
+					flexShrink: 0,
+				}}
+			>
+				<div style={{display: 'flex', gap: 4}}>
+					<button
+						onClick={() => {
+							onSetViewMode('table');
+						}}
+						aria-label="List view"
+						style={{
+							display: 'flex',
+							alignItems: 'center',
+							gap: 5,
+							padding: '6px 12px',
+							border: '1px solid var(--border-color)',
+							borderRadius: 6,
+							cursor: 'pointer',
+							background: viewMode === 'table' ? 'var(--accent-dim)' : 'transparent',
+							color:
+								viewMode === 'table' ? 'var(--accent-text)' : 'var(--text-muted)',
+							fontSize: 13,
+							fontWeight: viewMode === 'table' ? 500 : 400,
+							minHeight: 36,
+						}}
+					>
+						<IconList size={14} />
+						List
+					</button>
+					<button
+						onClick={() => {
+							onSetViewMode('gallery');
+						}}
+						aria-label="Grid view"
+						style={{
+							display: 'flex',
+							alignItems: 'center',
+							gap: 5,
+							padding: '6px 12px',
+							border: '1px solid var(--border-color)',
+							borderRadius: 6,
+							cursor: 'pointer',
+							background:
+								viewMode === 'gallery' ? 'var(--accent-dim)' : 'transparent',
+							color:
+								viewMode === 'gallery' ? 'var(--accent-text)' : 'var(--text-muted)',
+							fontSize: 13,
+							fontWeight: viewMode === 'gallery' ? 500 : 400,
+							minHeight: 36,
+						}}
+					>
+						<IconLayoutGrid size={14} />
+						Grid
+					</button>
+				</div>
+				<Text style={{fontSize: 13, color: 'var(--text-muted)'}}>
+					{loading ? '…' : `${totalCount} items`}
+				</Text>
+			</div>
+
+			{/* Upload progress */}
+			{uploadProgress !== null && (
+				<div
+					style={{
+						padding: '5px 16px',
+						background: 'var(--bg-surface)',
+						borderBottom: '1px solid var(--border-color)',
+						fontSize: 13,
+						color: 'var(--text-muted)',
+					}}
+				>
+					Uploading {uploadProgress.filename} ({uploadProgress.done + 1}/
+					{uploadProgress.total}) {uploadProgress.fileProgress}%
+				</div>
+			)}
+
+			{/* Scrollable content */}
+			<div style={{flex: 1, overflowY: 'auto', paddingBottom: 80}}>
+				{loading && (
+					<Stack gap={0} p={0}>
+						{[1, 2, 3, 4, 5, 6].map((n) => (
+							<Skeleton key={n} height={60} radius={0} style={{marginBottom: 1}} />
+						))}
+					</Stack>
+				)}
+
+				{!loading && objects.length === 0 && (
+					<div
+						style={{
+							display: 'flex',
+							flexDirection: 'column',
+							alignItems: 'center',
+							justifyContent: 'center',
+							padding: '80px 40px',
+							gap: 14,
+						}}
+					>
+						<IconFolder size={48} style={{color: 'var(--text-muted)'}} />
+						<Text style={{color: 'var(--text-muted)', fontSize: 15}}>
+							{filterText ? 'No matches for your filter' : 'This folder is empty'}
+						</Text>
+					</div>
+				)}
+
+				{!loading && objects.length > 0 && viewMode === 'gallery' && (
+					<div style={{padding: 12}}>
+						<GalleryView
+							objects={objects}
+							bucket={bucket}
+							prefix={prefix}
+							onNavigate={onNavigate}
+							onSelectObject={onSelectObject}
+						/>
+					</div>
+				)}
+
+				{!loading && objects.length > 0 && viewMode === 'table' && (
+					<>
+						{folders.length > 0 && (
+							<>
+								<div style={mobileSectionLabel}>Folders</div>
+								{folders.map((obj) => (
+									<MobileFolderRow
+										key={obj.key}
+										obj={obj}
+										prefix={prefix}
+										onNavigate={onNavigate}
+									/>
+								))}
+							</>
+						)}
+
+						{files.length > 0 && (
+							<>
+								<div style={mobileSectionLabel}>Files</div>
+								{files.map((obj) => (
+									<MobileFileRow
+										key={obj.key}
+										obj={obj}
+										prefix={prefix}
+										isSelected={obj.key === selectedKey}
+										onSelectObject={onSelectObject}
+									/>
+								))}
+							</>
+						)}
+					</>
+				)}
+
+				{!loading && (
+					<div style={{padding: '8px 16px'}}>
+						<PaginationControls
+							page={page}
+							totalCount={totalCount}
+							pageSize={pageSize}
+							onPageChange={onPageChange}
+							onPageSizeChange={onPageSizeChange}
+						/>
+					</div>
+				)}
+			</div>
+
+			{/* Sticky upload button */}
+			<div
+				style={{
+					position: 'absolute',
+					bottom: 0,
+					left: 0,
+					right: 0,
+					padding: '10px 16px',
+					background: 'var(--bg-base)',
+					borderTop: '1px solid var(--border-color)',
+				}}
+			>
+				<Button
+					leftSection={<IconUpload size={16} />}
+					variant="filled"
+					color="kgreen"
+					onClick={onUploadClick}
+					disabled={uploadProgress !== null}
+					fullWidth
+					style={{height: 48, fontSize: 15}}
+				>
+					Upload
+				</Button>
+			</div>
+		</div>
+	);
+};
+
+interface MobileFolderRowProps {
+	obj: S3Object;
+	prefix: string;
+	onNavigate: (p: string) => void;
+}
+
+const MobileFolderRow = ({obj, prefix, onNavigate}: MobileFolderRowProps) => {
+	const name = obj.key.slice(prefix.length).replace(/\/$/, '');
+	return (
+		<button
+			onClick={() => {
+				onNavigate(obj.key);
+			}}
+			aria-label={`Open folder ${name}`}
+			style={{
+				display: 'flex',
+				alignItems: 'center',
+				gap: 12,
+				width: '100%',
+				padding: '0 16px',
+				minHeight: 56,
+				background: 'none',
+				border: 'none',
+				borderBottom: '1px solid var(--border-color)',
+				cursor: 'pointer',
+				textAlign: 'left',
+			}}
+		>
+			<IconFolder size={18} style={{color: 'var(--text-muted)', flexShrink: 0}} />
+			<Text
+				truncate
+				style={{
+					flex: 1,
+					fontSize: 15,
+					color: 'var(--text-primary)',
+					minWidth: 0,
+				}}
+			>
+				{name}
+			</Text>
+			<span style={{color: 'var(--text-muted)', fontSize: 18, flexShrink: 0}}>›</span>
+		</button>
+	);
+};
+
+interface MobileFileRowProps {
+	obj: S3Object;
+	prefix: string;
+	isSelected: boolean;
+	onSelectObject: (key: string | null) => void;
+}
+
+const MobileFileRow = ({obj, prefix, isSelected, onSelectObject}: MobileFileRowProps) => {
+	const name = obj.key.slice(prefix.length);
+	const rowBg = isSelected ? 'var(--accent-dim)' : 'transparent';
+
+	return (
+		<button
+			onClick={() => {
+				onSelectObject(isSelected ? null : obj.key);
+			}}
+			style={{
+				display: 'flex',
+				alignItems: 'center',
+				gap: 12,
+				width: '100%',
+				padding: '0 16px',
+				minHeight: 60,
+				background: rowBg,
+				border: 'none',
+				borderBottom: '1px solid var(--border-color)',
+				boxShadow: isSelected ? 'inset 2px 0 0 var(--accent)' : undefined,
+				cursor: 'pointer',
+				textAlign: 'left',
+			}}
+		>
+			<IconFile size={18} style={{color: 'var(--text-muted)', flexShrink: 0}} />
+			<div style={{flex: 1, minWidth: 0}}>
+				<Text
+					truncate
+					style={{
+						fontFamily: 'var(--font-display)',
+						fontSize: 14,
+						color: 'var(--text-primary)',
+						lineHeight: 1.3,
+					}}
+				>
+					{name}
+				</Text>
+				<Text
+					style={{
+						fontSize: 12,
+						color: 'var(--text-muted)',
+						marginTop: 2,
+						fontFeatureSettings: '"tnum"',
+					}}
+				>
+					{formatSize(obj.size)} ·{' '}
+					{obj.lastModified !== '' ? formatDate(obj.lastModified) : '—'}
+				</Text>
+			</div>
+		</button>
 	);
 };
 

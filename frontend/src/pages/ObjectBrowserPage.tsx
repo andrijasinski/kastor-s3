@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import {useParams, useSearchParams} from 'react-router-dom';
+import {useNavigate, useParams, useSearchParams} from 'react-router-dom';
 import {Progress, Stack, Text} from '@mantine/core';
 import {notifications} from '@mantine/notifications';
 import streamSaver from 'streamsaver';
@@ -15,6 +15,7 @@ import {
 import {ObjectBrowser} from '../components/ObjectBrowser';
 import {ObjectInspector} from '../components/ObjectInspector';
 import {useDragUpload} from '../hooks/useDragUpload';
+import {useMobile} from '../contexts/MobileContext';
 import type {ResolvedFile} from '../utils/resolveDropEntries';
 
 interface UploadProgress {
@@ -29,6 +30,8 @@ const CHUNK_SIZE = 8 * 1024 * 1024;
 export const ObjectBrowserPage = () => {
 	const {bucket} = useParams<{bucket: string}>();
 	const [searchParams, setSearchParams] = useSearchParams();
+	const navigate = useNavigate();
+	const {isMobile} = useMobile();
 
 	const prefix = searchParams.get('prefix') ?? '';
 	const selectedKey = searchParams.get('key') ?? null;
@@ -281,6 +284,40 @@ export const ObjectBrowserPage = () => {
 
 	const showInspector = selectedKey !== null;
 
+	const browserProps = {
+		bucket,
+		prefix,
+		objects,
+		totalCount,
+		loading,
+		page,
+		pageSize,
+		selectedKey,
+		uploadProgress,
+		isDragging,
+		dragProps,
+		onNavigate: navigateTo,
+		onSelectObject: selectObject,
+		onPageChange: handlePageChange,
+		onPageSizeChange: handlePageSizeChange,
+		onUploadClick: () => {
+			fileInputRef.current?.click();
+		},
+		onFolderUploadClick: () => {
+			folderInputRef.current?.click();
+		},
+		onDownloadFolder: handleDownloadFolder,
+		onDeleteFolder: handleDeleteFolder,
+		folderSizes,
+		calculatingFolders,
+		onCalculateFolderSize: (p: string) => {
+			void calculateFolderSize(p);
+		},
+		onGoBack: () => {
+			void navigate('/');
+		},
+	};
+
 	return (
 		<div style={{display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden'}}>
 			{/* Hidden file inputs */}
@@ -308,8 +345,8 @@ export const ObjectBrowserPage = () => {
 				}}
 			/>
 
-			{/* Upload progress bar */}
-			{uploadProgress !== null && (
+			{/* Upload progress bar (desktop only — mobile shows it inline) */}
+			{uploadProgress !== null && !isMobile && (
 				<Stack
 					gap={4}
 					style={{
@@ -330,7 +367,7 @@ export const ObjectBrowserPage = () => {
 				</Stack>
 			)}
 
-			{/* When inspector is open and object is an image: full-attention mode */}
+			{/* When inspector is open and object is found: full-attention mode */}
 			{showInspector && selectedObject !== undefined ? (
 				<div
 					style={{
@@ -338,7 +375,7 @@ export const ObjectBrowserPage = () => {
 						top: 0,
 						right: 0,
 						bottom: 0,
-						left: 'var(--rail-width)',
+						left: isMobile ? 0 : 'var(--rail-width)',
 						zIndex: 10,
 						overflow: 'hidden',
 					}}
@@ -361,7 +398,7 @@ export const ObjectBrowserPage = () => {
 					/>
 				</div>
 			) : showInspector && selectedObject === undefined ? (
-				/* Key in URL but not yet in loaded objects — show browser alongside */
+				/* Key in URL but not yet in loaded objects — show browser */
 				<div style={{display: 'flex', flex: 1, minHeight: 0}}>
 					<div
 						style={{
@@ -371,36 +408,7 @@ export const ObjectBrowserPage = () => {
 							flexDirection: 'column',
 						}}
 					>
-						<ObjectBrowser
-							bucket={bucket}
-							prefix={prefix}
-							objects={objects}
-							totalCount={totalCount}
-							loading={loading}
-							page={page}
-							pageSize={pageSize}
-							selectedKey={selectedKey}
-							uploadProgress={uploadProgress}
-							isDragging={isDragging}
-							dragProps={dragProps}
-							onNavigate={navigateTo}
-							onSelectObject={selectObject}
-							onPageChange={handlePageChange}
-							onPageSizeChange={handlePageSizeChange}
-							onUploadClick={() => {
-								fileInputRef.current?.click();
-							}}
-							onFolderUploadClick={() => {
-								folderInputRef.current?.click();
-							}}
-							onDownloadFolder={handleDownloadFolder}
-							onDeleteFolder={handleDeleteFolder}
-							folderSizes={folderSizes}
-							calculatingFolders={calculatingFolders}
-							onCalculateFolderSize={(p) => {
-								void calculateFolderSize(p);
-							}}
-						/>
+						<ObjectBrowser {...browserProps} />
 					</div>
 				</div>
 			) : (
@@ -408,36 +416,7 @@ export const ObjectBrowserPage = () => {
 				<div
 					style={{flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column'}}
 				>
-					<ObjectBrowser
-						bucket={bucket}
-						prefix={prefix}
-						objects={objects}
-						totalCount={totalCount}
-						loading={loading}
-						page={page}
-						pageSize={pageSize}
-						selectedKey={selectedKey}
-						uploadProgress={uploadProgress}
-						isDragging={isDragging}
-						dragProps={dragProps}
-						onNavigate={navigateTo}
-						onSelectObject={selectObject}
-						onPageChange={handlePageChange}
-						onPageSizeChange={handlePageSizeChange}
-						onUploadClick={() => {
-							fileInputRef.current?.click();
-						}}
-						onFolderUploadClick={() => {
-							folderInputRef.current?.click();
-						}}
-						onDownloadFolder={handleDownloadFolder}
-						onDeleteFolder={handleDeleteFolder}
-						folderSizes={folderSizes}
-						calculatingFolders={calculatingFolders}
-						onCalculateFolderSize={(p) => {
-							void calculateFolderSize(p);
-						}}
-					/>
+					<ObjectBrowser {...browserProps} />
 				</div>
 			)}
 		</div>
