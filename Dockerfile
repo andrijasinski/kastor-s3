@@ -25,6 +25,8 @@ RUN bun run build
 
 FROM nginx:alpine
 
+RUN apk add --no-cache openssl
+
 COPY --from=builder /usr/local/bin/bun /usr/local/bin/bun
 
 WORKDIR /app
@@ -35,7 +37,8 @@ COPY api/src/ ./api/src/
 COPY api/tsconfig.json ./api/
 
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf.noauth /etc/nginx/conf.d/nginx.conf.noauth
+COPY nginx.conf.auth /etc/nginx/conf.d/nginx.conf.auth
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
